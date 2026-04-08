@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\CvController;
+use App\Http\Controllers\CvEducationController;
+use App\Http\Controllers\CvExperienceController;
 use App\Http\Controllers\EducationController;
 use App\Http\Controllers\ExperienceController;
 use App\Http\Controllers\RoleController;
@@ -13,6 +15,9 @@ Route::get('/', function () {
 
 Route::middleware('auth')->group(function () {
     Route::resource('cvs', CvController::class);
+
+    Route::resource('cvs.experiences', CvExperienceController::class);
+    Route::resource('cvs.educations', CvEducationController::class);
 });
 
 Route::resource('roles', RoleController::class);

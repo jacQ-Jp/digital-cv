@@ -30,7 +30,10 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <h2 class="h6">Experiences</h2>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h2 class="h6 mb-0">Experiences</h2>
+                        <a class="btn btn-sm btn-outline-primary" href="{{ route('cvs.experiences.index', $cv) }}">Manage</a>
+                    </div>
                     @forelse($cv->experiences as $exp)
                         <div class="border-bottom pb-2 mb-2">
                             <div class="fw-semibold">{{ $exp->position }} - {{ $exp->company }}</div>
@@ -49,7 +52,10 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <h2 class="h6">Educations</h2>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h2 class="h6 mb-0">Educations</h2>
+                        <a class="btn btn-sm btn-outline-primary" href="{{ route('cvs.educations.index', $cv) }}">Manage</a>
+                    </div>
                     @forelse($cv->educations as $edu)
                         <div class="border-bottom pb-2 mb-2">
                             <div class="fw-semibold">{{ $edu->school }}</div>
