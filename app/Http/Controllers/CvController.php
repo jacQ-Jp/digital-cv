@@ -3,99 +3,64 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreCvRequest;
-use App\Http\Requests\UpdateCvRequest;
+use App\Http\Requests\StoreExperienceRequest;
 use App\Models\Cv;
-use App\Models\Template;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class CvController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Contoh eager loading: ambil CV beserta relasi User/Role, Template, Experiences/Educations/Skills.
      */
-    public function index(): View
+    public function show(int $id): JsonResponse
     {
-        $cvs = Cv::query()
-            ->where('user_id', Auth::id())
-            ->latest()
-            ->get();
+        $cv = Cv::query()
+            ->with([
+                'user.role',
+                'template',
+                'experiences',
+                'educations',
+                'skills',
+            ])
+            ->findOrFail($id);
 
-        return view('cvs.index', compact('cvs'));
+        return response()->json($cv);
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Simpan CV.
      */
-    public function create(): View
+    public function store(StoreCvRequest $request): JsonResponse
     {
-        $templates = Template::query()->where('is_active', true)->orderBy('name')->get();
+        $data = $request->validated();
 
-        return view('cvs.create', compact('templates'));
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreCvRequest $request): RedirectResponse
-    {
         $cv = Cv::create([
-            'user_id' => Auth::id(),
-            'title' => $request->validated('title'),
-            'summary' => $request->validated('summary'),
-            'template_slug' => $request->validated('template_slug'),
-            'status' => $request->validated('status'),
+            'user_id' => $request->user()?->id ?? $data['user_id'] ?? null,
+            'title' => $data['title'],
+            'summary' => $data['summary'] ?? null,
+            'template_slug' => $data['template_slug'],
+            'status' => $data['status'] ?? 'draft',
         ]);
 
-        return redirect()->route('cvs.show', $cv);
+        return response()->json($cv, 201);
     }
 
     /**
-     * Display the specified resource.
+     * Simpan multiple experiences menggunakan foreach.
      */
-    public function show(Cv $cv): View
+    public function storeExperiences(StoreExperienceRequest $request, Cv $cv): JsonResponse
     {
-        abort_unless($cv->user_id === Auth::id(), 403);
+        $validated = $request->validated();
 
-        $cv->load(['template', 'experiences', 'educations']);
+        DB::transaction(function () use ($cv, $validated) {
+            foreach ($validated['experiences'] as $experience) {
+                $cv->experiences()->create($experience);
+            }
+        });
 
-        return view('cvs.show', compact('cv'));
-    }
+        $cv->load('experiences');
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Cv $cv): View
-    {
-        abort_unless($cv->user_id === Auth::id(), 403);
-
-        $templates = Template::query()->where('is_active', true)->orderBy('name')->get();
-
-        return view('cvs.edit', compact('cv', 'templates'));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateCvRequest $request, Cv $cv): RedirectResponse
-    {
-        abort_unless($cv->user_id === Auth::id(), 403);
-
-        $cv->update($request->validated());
-
-        return redirect()->route('cvs.show', $cv);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Cv $cv): RedirectResponse
-    {
-        abort_unless($cv->user_id === Auth::id(), 403);
-
-        $cv->delete();
-
-        return redirect()->route('cvs.index');
+        return response()->json($cv);
     }
 }

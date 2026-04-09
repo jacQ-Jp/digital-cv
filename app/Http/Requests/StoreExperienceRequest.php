@@ -23,11 +23,12 @@ class StoreExperienceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'company' => ['required', 'string', 'max:255'],
-            'position' => ['required', 'string', 'max:255'],
-            'start_date' => ['required', 'date'],
-            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
-            'description' => ['nullable', 'string'],
+            'experiences' => ['required', 'array', 'min:1'],
+            'experiences.*.company' => ['required', 'string', 'max:255'],
+            'experiences.*.position' => ['required', 'string', 'max:255'],
+            'experiences.*.start_date' => ['required', 'date'],
+            'experiences.*.end_date' => ['nullable', 'date', 'after_or_equal:experiences.*.start_date'],
+            'experiences.*.description' => ['nullable', 'string'],
         ];
     }
 }
