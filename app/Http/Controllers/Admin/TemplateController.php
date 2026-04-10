@@ -14,7 +14,11 @@ class TemplateController extends Controller
 {
     public function index(): View
     {
-        $templates = Template::query()->orderByDesc('is_default')->orderBy('name')->get();
+        $templates = Template::query()
+            ->withCount('cvs')
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get();
 
         return view('admin.templates.index', compact('templates'));
     }
@@ -58,7 +62,9 @@ class TemplateController extends Controller
 
     public function edit(Template $template): View
     {
-        return view('admin.templates.edit', compact('template'));
+        $isUsed = $template->cvs()->exists();
+
+        return view('admin.templates.edit', compact('template', 'isUsed'));
     }
 
     public function update(Request $request, Template $template): RedirectResponse
@@ -82,8 +88,19 @@ class TemplateController extends Controller
                 abort(422, 'Template cannot be inactivated because it is already used by users.');
             }
 
+            // Do not allow deactivating a default template.
+            if ($wantsInactive && $template->is_default) {
+                abort(422, 'Default template cannot be inactivated.');
+            }
+
             if (!empty($data['is_default'])) {
-                Template::query()->where('id', '!=', $template->id)->where('is_default', true)->update(['is_default' => false]);
+                // Only one default template allowed.
+                Template::query()
+                    ->where('id', '!=', $template->id)
+                    ->where('is_default', true)
+                    ->update(['is_default' => false]);
+
+                // Default template must be active.
                 $data['is_active'] = true;
             }
 
@@ -97,15 +114,31 @@ class TemplateController extends Controller
             ]);
         });
 
-        return redirect()->route('admin.templates.index');
+        return redirect()->route('admin.templates.index')->with('status', 'Template updated.');
     }
 
     public function destroy(Template $template): RedirectResponse
     {
+        abort_unless(! $template->is_default, 422, 'Default template cannot be deleted.');
         abort_unless(! $template->cvs()->exists(), 422, 'Template cannot be deleted because it is already used by users.');
 
         $template->delete();
 
-        return redirect()->route('admin.templates.index');
+        return redirect()->route('admin.templates.index')->with('status', 'Template deleted.');
+    }
+
+    public function toggleActive(Template $template): RedirectResponse
+    {
+        if ($template->is_default) {
+            abort(422, 'Default template cannot be inactivated.');
+        }
+
+        if ($template->is_active && $template->cvs()->exists()) {
+            abort(422, 'Template cannot be inactivated because it is already used by users.');
+        }
+
+        $template->update(['is_active' => ! $template->is_active]);
+
+        return redirect()->route('admin.templates.index')->with('status', 'Template status updated.');
     }
 }

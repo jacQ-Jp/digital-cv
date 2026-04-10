@@ -4,6 +4,10 @@
 <div class="container" style="max-width: 520px;">
     <h1 class="h3 mb-3">Login</h1>
 
+    @if (session('status'))
+        <div class="alert alert-success">{{ session('status') }}</div>
+    @endif
+
     <form method="POST" action="{{ route('login') }}">
         @csrf
 

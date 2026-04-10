@@ -40,9 +40,7 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        return redirect()->route('cv-builder.templates');
+        // Do not auto-login; force user to login after registration
+        return redirect()->route('login')->with('status', 'Registrasi berhasil. Silakan login.');
     }
 }

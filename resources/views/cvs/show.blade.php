@@ -75,6 +75,26 @@
         </div>
     </div>
 
+    <div class="row g-3 mt-0">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h2 class="h6 mb-0">Skills</h2>
+                        <a class="btn btn-sm btn-outline-primary" href="{{ route('cvs.skills.index', $cv) }}">Manage</a>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        @forelse($cv->skills as $skill)
+                            <span class="badge text-bg-secondary">{{ $skill->name }}@if($skill->level) ({{ $skill->level }})@endif</span>
+                        @empty
+                            <span class="text-muted">No skills yet.</span>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="mt-3">
         <a class="btn btn-outline-secondary" href="{{ route('cvs.index') }}">Back</a>
     </div>

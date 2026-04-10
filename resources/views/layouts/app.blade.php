@@ -24,6 +24,9 @@
             @endguest
 
             @auth
+                @if(auth()->user()?->role?->slug === 'admin')
+                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.dashboard') }}">Admin</a>
+                @endif
                 <a class="btn btn-sm btn-outline-primary" href="{{ route('cvs.index') }}">Dashboard</a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

@@ -17,24 +17,66 @@
                 <tr>
                     <th>Name</th>
                     <th>Slug</th>
-                    <th>Active</th>
-                    <th>Default</th>
-                    <th></th>
+                    <th>Used</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($templates as $tpl)
+                    @php
+                        $usedCount = (int) ($tpl->cvs_count ?? 0);
+                        $isUsed = $usedCount > 0;
+                        $isDefault = (bool) $tpl->is_default;
+                        $isActive = (bool) $tpl->is_active;
+
+                        $canDelete = ! $isDefault && ! $isUsed;
+                        $canToggleActive = ! $isDefault && ! ($isActive && $isUsed);
+                    @endphp
                     <tr>
-                        <td>{{ $tpl->name }}</td>
+                        <td>
+                            <div class="fw-semibold">{{ $tpl->name }}</div>
+                            <div class="small text-muted">{{ $tpl->description }}</div>
+                        </td>
                         <td><code>{{ $tpl->slug }}</code></td>
-                        <td>{{ $tpl->is_active ? 'yes' : 'no' }}</td>
-                        <td>{{ $tpl->is_default ? 'yes' : 'no' }}</td>
+                        <td>
+                            <span class="fw-semibold">{{ $usedCount }}</span>
+                            @if($isUsed)
+                                <span class="badge text-bg-warning">Dipakai</span>
+                            @else
+                                <span class="badge text-bg-secondary">Belum dipakai</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($isActive)
+                                <span class="badge text-bg-success">Active</span>
+                            @else
+                                <span class="badge text-bg-secondary">Inactive</span>
+                            @endif
+
+                            @if($isDefault)
+                                <span class="badge text-bg-primary">Default</span>
+                            @endif
+                        </td>
                         <td class="text-end">
                             <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.templates.edit', $tpl) }}">Edit</a>
+
+                            <form class="d-inline" method="POST" action="{{ route('admin.templates.toggle-active', $tpl) }}">
+                                @csrf
+                                @method('PATCH')
+                                <button class="btn btn-sm btn-outline-secondary" type="submit" @disabled(!$canToggleActive)
+                                    title="{{ !$canToggleActive ? 'Tidak bisa dinonaktifkan jika sudah dipakai / default tidak bisa dinonaktifkan' : '' }}">
+                                    {{ $isActive ? 'Deactivate' : 'Activate' }}
+                                </button>
+                            </form>
+
                             <form class="d-inline" method="POST" action="{{ route('admin.templates.destroy', $tpl) }}" onsubmit="return confirm('Delete this template?')">
                                 @csrf
                                 @method('DELETE')
-                                <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                                <button class="btn btn-sm btn-outline-danger" type="submit" @disabled(!$canDelete)
+                                    title="{{ !$canDelete ? ($isDefault ? 'Default template tidak bisa dihapus' : 'Template sudah dipakai, tidak bisa dihapus') : '' }}">
+                                    Delete
+                                </button>
                             </form>
                         </td>
                     </tr>

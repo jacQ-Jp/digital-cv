@@ -31,6 +31,12 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Route admins to the admin area; other users go to their CV dashboard.
+        $user = $request->user();
+        if ($user?->role?->slug === 'admin') {
+            return redirect()->intended(route('admin.dashboard'));
+        }
+
         return redirect()->intended(route('cvs.index'));
     }
 
