@@ -18,7 +18,18 @@
     <div class="container">
         <a class="navbar-brand" href="{{ url('/') }}">{{ config('app.name', 'Laravel') }}</a>
         <div class="ms-auto d-flex gap-2">
-            <a class="btn btn-sm btn-outline-primary" href="{{ route('cvs.index') }}">CVs</a>
+            @guest
+                <a class="btn btn-sm btn-outline-primary" href="{{ route('login') }}">Login</a>
+                <a class="btn btn-sm btn-primary" href="{{ route('register') }}">Register</a>
+            @endguest
+
+            @auth
+                <a class="btn btn-sm btn-outline-primary" href="{{ route('cvs.index') }}">Dashboard</a>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Logout</button>
+                </form>
+            @endauth
         </div>
     </div>
 </nav>

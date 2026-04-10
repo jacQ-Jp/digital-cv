@@ -21,16 +21,9 @@
                       @endif
                   </div>
               @else
-                  <div class="alert alert-info mt-3">
-                      Kamu perlu login / register untuk mulai membuat CV.
-                  </div>
-                  <div class="d-flex gap-2">
-                      @if (Route::has('login'))
-                          <a class="btn btn-primary" href="{{ route('login') }}">Login</a>
-                      @endif
-                      @if (Route::has('register'))
-                          <a class="btn btn-outline-primary" href="{{ route('register') }}">Register</a>
-                      @endif
+                  <div class="d-flex flex-wrap gap-2">
+                      <a class="btn btn-primary" href="{{ route('login') }}">Login</a>
+                      <a class="btn btn-outline-primary" href="{{ route('register') }}">Register</a>
                   </div>
               @endauth
           </div>

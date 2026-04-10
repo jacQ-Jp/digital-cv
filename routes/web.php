@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Cv\CvController;
 use App\Http\Controllers\Cv\CvEducationController;
 use App\Http\Controllers\Cv\CvExperienceController;
@@ -8,6 +10,20 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Authentication (manual)
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
+    Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+
+    Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
+    Route::post('/register', [RegisteredUserController::class, 'store']);
+});
+
+Route::middleware('auth')->post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+
+// Logged-in landing (optional convenience)
+Route::middleware('auth')->get('/home', fn () => redirect()->route('cvs.index'))->name('home');
 
 // Public CV page (only published)
 Route::get('/p/{cv}', [CvController::class, 'public'])->name('cvs.public');
