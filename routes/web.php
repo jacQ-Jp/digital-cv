@@ -1,12 +1,8 @@
 <?php
 
-use App\Http\Controllers\CvController;
-use App\Http\Controllers\CvEducationController;
-use App\Http\Controllers\CvExperienceController;
-use App\Http\Controllers\EducationController;
-use App\Http\Controllers\ExperienceController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\TemplateController;
+use App\Http\Controllers\Cv\CvController;
+use App\Http\Controllers\Cv\CvEducationController;
+use App\Http\Controllers\Cv\CvExperienceController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -33,7 +29,3 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('templates', \App\Http\Controllers\Admin\TemplateController::class);
 });
-
-Route::resource('roles', RoleController::class);
-Route::resource('experiences', ExperienceController::class);
-Route::resource('educations', EducationController::class);

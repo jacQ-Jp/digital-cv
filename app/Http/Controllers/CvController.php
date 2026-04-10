@@ -8,7 +8,7 @@ use App\Models\Cv;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
-class CvController extends Controller
+class CvApiExampleController extends Controller
 {
     /**
      * Contoh eager loading: ambil CV beserta relasi User/Role, Template, Experiences/Educations/Skills.
