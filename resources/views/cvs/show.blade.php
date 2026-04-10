@@ -6,6 +6,12 @@
         <div>
             <h1 class="h3 mb-1">{{ $cv->title }}</h1>
             <div class="text-muted small">Status: {{ $cv->status }} | Template: {{ $cv->template?->name ?? $cv->template_slug }}</div>
+            <div class="mt-2 d-flex flex-wrap gap-2">
+                <a class="btn btn-sm btn-outline-secondary" href="{{ route('cvs.render', $cv) }}">Preview Render</a>
+                @if($cv->status === 'published')
+                    <a class="btn btn-sm btn-outline-success" href="{{ route('cvs.public', $cv) }}" target="_blank" rel="noopener">Public Link</a>
+                @endif
+            </div>
         </div>
         <div class="d-flex gap-2">
             <a class="btn btn-outline-primary" href="{{ route('cvs.edit', $cv) }}">Edit</a>

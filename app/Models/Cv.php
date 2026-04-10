@@ -44,4 +44,3 @@ class Cv extends Model
         return $this->belongsTo(Template::class, 'template_slug', 'slug');
     }
 }
-?>

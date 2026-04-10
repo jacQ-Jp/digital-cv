@@ -4,6 +4,11 @@
 <div class="container">
     <h1 class="h3 mb-3">Create CV</h1>
 
+    <div class="alert alert-info">
+        Template dipilih di awal. Kamu masih bisa mengganti template di sini jika diperlukan.
+        <a href="{{ route('cv-builder.templates') }}" class="alert-link">Ganti template</a>.
+    </div>
+
     <form method="POST" action="{{ route('cvs.store') }}">
         @csrf
 
@@ -21,11 +26,11 @@
 
         <div class="mb-3">
             <label class="form-label">Template</label>
-            <select name="template_slug" class="form-select" required>
-                <option value="" disabled selected>Select template</option>
+            <select name="template_slug" class="form-select">
                 @foreach($templates as $tpl)
-                    <option value="{{ $tpl->slug }}" @selected(old('template_slug')===$tpl->slug)>
-                        {{ $tpl->name }}
+                    @php($current = old('template_slug', $selectedTemplateSlug ?? null))
+                    <option value="{{ $tpl->slug }}" @selected($current === $tpl->slug)>
+                        {{ $tpl->name }}@if($tpl->is_default) (default)@endif
                     </option>
                 @endforeach
             </select>

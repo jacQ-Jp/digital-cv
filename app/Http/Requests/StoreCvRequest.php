@@ -25,7 +25,7 @@ class StoreCvRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'summary' => ['nullable', 'string'],
-            'template_slug' => ['required', 'string', 'exists:templates,slug'],
+            'template_slug' => ['nullable', 'string', 'exists:templates,slug'],
             'status' => ['required', 'in:draft,published'],
         ];
     }
