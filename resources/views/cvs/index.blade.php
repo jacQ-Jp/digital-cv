@@ -5,7 +5,7 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="h3 mb-0">My CVs</h1>
-        <a class="btn btn-primary" href="{{ route('cvs.create') }}">Create CV</a>
+        <a class="btn btn-primary" href="{{ route('cv-builder.templates') }}">Pilih Template</a>
     </div>
 
     @if($cvs->isEmpty())

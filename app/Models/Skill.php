@@ -4,19 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Role extends Model
+class Skill extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'cv_id',
         'name',
-        'slug',
+        'level',
     ];
 
-    public function users(): HasMany
+    public function cv(): BelongsTo
     {
-        return $this->hasMany(User::class);
+        return $this->belongsTo(Cv::class);
     }
 }

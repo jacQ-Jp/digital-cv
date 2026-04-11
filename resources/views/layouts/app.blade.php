@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ config('app.name', 'Laravel') }}</title>
 
-    {{-- Use Vite assets if available --}}
+    {{-- App CSS/JS (Tailwind via Vite) --}}
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @endif
@@ -14,17 +14,54 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
+@php($isCvRender = request()->routeIs('cvs.render') || request()->routeIs('cvs.public'))
+
+@if(! $isCvRender)
 <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom mb-4">
     <div class="container">
         <a class="navbar-brand" href="{{ url('/') }}">{{ config('app.name', 'Laravel') }}</a>
+
+        @auth
+            <form method="POST" action="{{ route('cv-builder.templates.save') }}" class="ms-3">
+                @csrf
+                <input type="hidden" name="redirect_to" value="{{ request()->getRequestUri() }}" />
+                <select name="template_slug" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Template">
+                    @php($activeTemplates = \App\Models\Template::query()->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get())
+                    @php($selected = session('cv_builder.template_slug') ?? $activeTemplates->firstWhere('is_default', true)?->slug ?? $activeTemplates->first()?->slug)
+                    @foreach($activeTemplates as $tpl)
+                        <option value="{{ $tpl->slug }}" @selected($selected === $tpl->slug)>
+                            {{ $tpl->name }}@if($tpl->is_default) (default)@endif
+                        </option>
+                    @endforeach
+                </select>
+            </form>
+        @endauth
+
         <div class="ms-auto d-flex gap-2">
-            <a class="btn btn-sm btn-outline-primary" href="{{ route('cvs.index') }}">CVs</a>
+            @guest
+                <a class="btn btn-sm btn-outline-primary" href="{{ route('login') }}">Login</a>
+                <a class="btn btn-sm btn-primary" href="{{ route('register') }}">Register</a>
+            @endguest
+
+            @auth
+                @if(auth()->user()?->role?->slug === 'admin')
+                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.dashboard') }}">Admin</a>
+                @endif
+                <a class="btn btn-sm btn-outline-primary" href="{{ route('cvs.index') }}">Dashboard</a>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Logout</button>
+                </form>
+            @endauth
         </div>
     </div>
 </nav>
+@endif
 
 @yield('content')
 
+@if(! $isCvRender)
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+@endif
 </body>
 </html>

@@ -34,6 +34,11 @@ class Cv extends Model
         return $this->hasMany(Education::class);
     }
 
+    public function skills(): HasMany
+    {
+        return $this->hasMany(Skill::class);
+    }
+
     public function template(): BelongsTo
     {
         return $this->belongsTo(Template::class, 'template_slug', 'slug');

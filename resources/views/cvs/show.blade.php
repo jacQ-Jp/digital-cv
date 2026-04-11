@@ -6,6 +6,12 @@
         <div>
             <h1 class="h3 mb-1">{{ $cv->title }}</h1>
             <div class="text-muted small">Status: {{ $cv->status }} | Template: {{ $cv->template?->name ?? $cv->template_slug }}</div>
+            <div class="mt-2 d-flex flex-wrap gap-2">
+                <a class="btn btn-sm btn-outline-secondary" href="{{ route('cvs.render', $cv) }}">Preview Render</a>
+                @if($cv->status === 'published')
+                    <a class="btn btn-sm btn-outline-success" href="{{ route('cvs.public', $cv) }}" target="_blank" rel="noopener">Public Link</a>
+                @endif
+            </div>
         </div>
         <div class="d-flex gap-2">
             <a class="btn btn-outline-primary" href="{{ route('cvs.edit', $cv) }}">Edit</a>
@@ -64,6 +70,26 @@
                     @empty
                         <div class="text-muted">No educations yet.</div>
                     @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mt-0">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h2 class="h6 mb-0">Skills</h2>
+                        <a class="btn btn-sm btn-outline-primary" href="{{ route('cvs.skills.index', $cv) }}">Manage</a>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        @forelse($cv->skills as $skill)
+                            <span class="badge text-bg-secondary">{{ $skill->name }}@if($skill->level) ({{ $skill->level }})@endif</span>
+                        @empty
+                            <span class="text-muted">No skills yet.</span>
+                        @endforelse
+                    </div>
                 </div>
             </div>
         </div>
