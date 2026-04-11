@@ -31,6 +31,7 @@ class CvController extends Controller
     {
         $request->validate([
             'template_slug' => ['nullable', 'string', 'exists:templates,slug'],
+            'redirect_to' => ['nullable', 'string'],
         ]);
 
         $selectedSlug = $request->input('template_slug');
@@ -45,9 +46,16 @@ class CvController extends Controller
                 ?? Template::query()->where('is_active', true)->orderBy('id')->first();
         }
 
-        abort_unless($template, 422, 'No active template available.');
+        if (! $template) {
+            abort(422, 'No active template available.');
+        }
 
         session(['cv_builder.template_slug' => $template->slug]);
+
+        $redirectTo = $request->input('redirect_to');
+        if (is_string($redirectTo) && str_starts_with($redirectTo, '/')) {
+            return redirect($redirectTo);
+        }
 
         return redirect()->route('cvs.create');
     }
@@ -68,27 +76,21 @@ class CvController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
-        $templates = Template::query()->where('is_active', true)->orderBy('name')->get();
-
-        // Force template chosen first, but still support fallback
         $selectedTemplateSlug = session('cv_builder.template_slug');
-        if (! $selectedTemplateSlug) {
-            $fallback = Template::query()->where('is_default', true)->first()
-                ?? Template::query()->where('is_active', true)->orderBy('id')->first();
 
-            if ($fallback) {
-                $selectedTemplateSlug = $fallback->slug;
-                session(['cv_builder.template_slug' => $selectedTemplateSlug]);
-            }
-        }
-
+        // Hard-enforce: must pick a template first (step 1).
         if (! $selectedTemplateSlug) {
             return redirect()->route('cv-builder.templates');
         }
 
-        return view('cvs.create', compact('templates', 'selectedTemplateSlug'));
+        $templates = Template::query()->where('is_active', true)->orderBy('name')->get();
+
+        return view('cvs.create', [
+            'templates' => $templates,
+            'selectedTemplateSlug' => $selectedTemplateSlug,
+        ]);
     }
 
     /**
@@ -96,12 +98,7 @@ class CvController extends Controller
      */
     public function store(StoreCvRequest $request): RedirectResponse
     {
-        $templateSlug = $request->validated('template_slug')
-            ?? session('cv_builder.template_slug');
-
-        if (! $templateSlug) {
-            $templateSlug = Template::query()->where('is_default', true)->value('slug');
-        }
+        $templateSlug = $request->validated('template_slug');
 
         $cv = Cv::create([
             'user_id' => Auth::id(),
@@ -110,6 +107,9 @@ class CvController extends Controller
             'template_slug' => $templateSlug,
             'status' => $request->validated('status'),
         ]);
+
+        // Reset builder selection after successful creation.
+        session()->forget('cv_builder.template_slug');
 
         return redirect()->route('cvs.show', $cv);
     }
@@ -153,15 +153,22 @@ class CvController extends Controller
     private function renderWithTemplateFallback(Cv $cv): View
     {
         $slug = $cv->template_slug;
+
+        // Views are stored in: resources/views/cv/templates/{slug}.blade.php
         $view = $slug ? "cv.templates.$slug" : null;
 
         if ($view && view()->exists($view)) {
             return view($view, compact('cv'));
         }
 
+        // Prefer DB default if it exists and has a view, otherwise use hard default view.
         $defaultSlug = Template::query()->where('is_default', true)->value('slug');
         if ($defaultSlug && view()->exists("cv.templates.$defaultSlug")) {
             return view("cv.templates.$defaultSlug", compact('cv'));
+        }
+
+        if (view()->exists('cv.templates.default')) {
+            return view('cv.templates.default', compact('cv'));
         }
 
         abort(500, 'No template view available.');
