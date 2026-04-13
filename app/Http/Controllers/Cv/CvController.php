@@ -65,12 +65,35 @@ class CvController extends Controller
      */
     public function index(): View
     {
-        $cvs = Cv::query()
-            ->where('user_id', Auth::id())
-            ->latest()
-            ->get();
+        $query = Cv::query()->where('user_id', Auth::id());
 
-        return view('cvs.index', compact('cvs'));
+        $status = request()->string('status')->toString();
+        if (in_array($status, ['draft', 'published'], true)) {
+            $query->where('status', $status);
+        }
+
+        $template = request()->string('template')->toString();
+        if ($template !== '') {
+            $query->where('template_slug', $template);
+        }
+
+        $search = trim((string) request()->get('q', ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('summary', 'like', "%{$search}%");
+            });
+        }
+
+        $cvs = $query->latest()->get();
+
+        $templates = Template::query()
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get(['name', 'slug', 'thumbnail']);
+
+        return view('cvs.index', compact('cvs', 'templates', 'status', 'template', 'search'));
     }
 
     /**
@@ -208,5 +231,16 @@ class CvController extends Controller
         $cv->delete();
 
         return redirect()->route('cvs.index');
+    }
+
+    public function togglePublish(Cv $cv): RedirectResponse
+    {
+        abort_unless($cv->user_id === Auth::id(), 403);
+
+        $cv->update([
+            'status' => $cv->status === 'published' ? 'draft' : 'published',
+        ]);
+
+        return redirect()->route('cvs.index')->with('status', 'CV status updated.');
     }
 }

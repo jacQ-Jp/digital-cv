@@ -36,7 +36,7 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('admin.dashboard');
         }
 
-        return app(\App\Http\Controllers\Cv\CvController::class)->index(request());
+        return app(\App\Http\Controllers\Cv\CvController::class)->index();
     })->name('cvs.index');
 
     // Step 1: template selection
@@ -44,6 +44,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/cv-builder/templates', [CvController::class, 'saveTemplateSelection'])->name('cv-builder.templates.save');
 
     Route::get('/cvs/{cv}/render', [CvController::class, 'render'])->name('cvs.render');
+
+    // Advanced actions
+    Route::patch('/cvs/{cv}/toggle-publish', [CvController::class, 'togglePublish'])->name('cvs.toggle-publish');
 
     Route::resource('cvs', CvController::class)->except(['index']);
 
