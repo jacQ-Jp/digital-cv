@@ -29,10 +29,13 @@ export const CvLivePreview = {
       return this.previewData.title?.trim() || 'Professional Profile';
     },
     safeEmail() {
-      return this.previewData.personal_email?.trim() || 'you@example.com';
+      return this.previewData.personal_email?.trim() || '-';
     },
     summary() {
-      return this.previewData.summary?.trim() || '';
+      return this.previewData.summary?.trim() || '-';
+    },
+    emailHref() {
+      return this.safeEmail === '-' ? '' : `mailto:${this.safeEmail}`;
     },
     experiences() {
       return (this.previewData.experiences || []).filter((item) => (
@@ -62,8 +65,9 @@ export const CvLivePreview = {
         <header class="wizard-paper-header">
           <h3 class="wizard-paper-name">{{ safeName }}</h3>
           <div class="wizard-paper-role">{{ safeRole }}</div>
-          <a class="wizard-paper-email" :href="'mailto:' + safeEmail">{{ safeEmail }}</a>
-          <p v-if="summary" class="wizard-paper-summary">{{ summary }}</p>
+          <a v-if="emailHref" class="wizard-paper-email" :href="emailHref">{{ safeEmail }}</a>
+          <span v-else class="wizard-paper-email">{{ safeEmail }}</span>
+          <p class="wizard-paper-summary">{{ summary }}</p>
         </header>
 
         <div class="wizard-paper-grid">

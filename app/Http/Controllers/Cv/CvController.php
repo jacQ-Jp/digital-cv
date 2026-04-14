@@ -253,8 +253,24 @@ class CvController extends Controller
     {
         abort_unless($cv->user_id === Auth::id(), 403);
 
+        $nextStatus = $cv->status === 'published' ? 'draft' : 'published';
+        if ($nextStatus === 'published') {
+            $publishErrors = $cv->publishingErrors();
+            if (! empty($publishErrors)) {
+                return redirect()
+                    ->back()
+                    ->withErrors($publishErrors)
+                    ->with('status', 'Cannot publish CV. Complete required personal fields first.');
+            }
+
+            if (! $cv->public_uuid) {
+                $cv->public_uuid = (string) Str::uuid();
+            }
+        }
+
         $cv->update([
-            'status' => $cv->status === 'published' ? 'draft' : 'published',
+            'status' => $nextStatus,
+            'public_uuid' => $cv->public_uuid,
         ]);
 
         return redirect()->route('cvs.index')->with('status', 'CV status updated.');

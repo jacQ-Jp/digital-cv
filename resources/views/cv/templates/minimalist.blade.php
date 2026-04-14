@@ -2,8 +2,8 @@
 
 @section('content')
 @php
-    $name = $cv->personal_name ?: $cv->user->name;
-    $email = $cv->personal_email ?: $cv->user->email;
+    $name = $cv->personal_name ?: ($cv->user?->name ?? 'Your Name');
+    $email = $cv->personal_email ?: ($cv->user?->email ?? '-');
     $photoUrl = $cv->photo_path ? asset('storage/' . $cv->photo_path) : null;
     $initials = collect(explode(' ', $name))->map(fn($w) => strtoupper(mb_substr($w, 0, 1)))->take(2)->join('');
 @endphp
@@ -283,15 +283,13 @@
                     @endif
                     <div>
                         <h1 class="cv-name">{{ $name }}</h1>
-                        <div class="cv-role">{{ $cv->title ?: 'Professional Profile' }}</div>
+                        <div class="cv-role">{{ $cv->title ?? 'Professional Profile' }}</div>
                     </div>
                 </div>
                 <a href="mailto:{{ $email }}" class="cv-email">{{ $email }}</a>
             </div>
 
-            @if($cv->summary)
-                <p class="cv-summary">{{ $cv->summary }}</p>
-            @endif
+            <p class="cv-summary">{{ $cv->summary ?? '-' }}</p>
         </header>
 
         <div class="cv-paper-grid">
@@ -302,17 +300,17 @@
                         <article class="cv-item">
                             <div class="cv-item-head">
                                 <div>
-                                    <p class="cv-item-main">{{ $exp->position }}</p>
-                                    <p class="cv-item-sub">{{ $exp->company }}</p>
+                                    <p class="cv-item-main">{{ $exp->position ?? '-' }}</p>
+                                    <p class="cv-item-sub">{{ $exp->company ?? '-' }}</p>
                                 </div>
-                                <div class="cv-item-date">{{ $exp->start_date }} - {{ $exp->end_date ?? 'Present' }}</div>
+                                <div class="cv-item-date">{{ $exp->start_date ?? '-' }} - {{ $exp->end_date ?? 'Present' }}</div>
                             </div>
                             @if($exp->description)
                                 <p class="cv-item-desc">{{ $exp->description }}</p>
                             @endif
                         </article>
                     @empty
-                        <p class="cv-muted">No experience listed.</p>
+                        <p class="cv-muted">No experience listed</p>
                     @endforelse
                 </section>
 
@@ -322,14 +320,14 @@
                         <article class="cv-item">
                             <div class="cv-item-head">
                                 <div>
-                                    <p class="cv-item-main">{{ $edu->school }}</p>
-                                    <p class="cv-item-sub">{{ $edu->degree }}</p>
+                                    <p class="cv-item-main">{{ $edu->school ?? '-' }}</p>
+                                    <p class="cv-item-sub">{{ $edu->degree ?? '-' }}</p>
                                 </div>
-                                <div class="cv-item-date">{{ $edu->year }}</div>
+                                <div class="cv-item-date">{{ $edu->year ?? '-' }}</div>
                             </div>
                         </article>
                     @empty
-                        <p class="cv-muted">No education listed.</p>
+                        <p class="cv-muted">No education listed</p>
                     @endforelse
                 </section>
             </main>
@@ -338,14 +336,14 @@
                 <section class="cv-section">
                     <h2 class="cv-section-title">Skills</h2>
                     @if($cv->skills->isEmpty())
-                        <p class="cv-muted">No skills listed.</p>
+                        <p class="cv-muted">No skills listed</p>
                     @else
                         <div class="cv-skills">
                             @foreach($cv->skills as $skill)
                                 <span class="cv-skill-tag">
-                                    {{ $skill->name }}
+                                    {{ $skill->name ?? '-' }}
                                     @if($skill->level)
-                                        <span class="cv-skill-level">{{ $skill->level }}</span>
+                                        <span class="cv-skill-level">{{ $skill->level ?? '-' }}</span>
                                     @endif
                                 </span>
                             @endforeach

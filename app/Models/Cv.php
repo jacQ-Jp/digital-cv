@@ -47,4 +47,19 @@ class Cv extends Model
     {
         return $this->belongsTo(Template::class, 'template_slug', 'slug');
     }
+
+    public function publishingErrors(): array
+    {
+        $errors = [];
+
+        if (blank(trim((string) $this->personal_name))) {
+            $errors['personal_name'] = 'Name is required before publishing.';
+        }
+
+        if (blank(trim((string) $this->personal_email))) {
+            $errors['personal_email'] = 'Email is required before publishing.';
+        }
+
+        return $errors;
+    }
 }

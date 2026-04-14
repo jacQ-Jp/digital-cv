@@ -276,7 +276,9 @@ if (root) {
           }
 
           if (!silent) {
-            this.showToast('Failed to save. Check form fields.');
+            const backendMessage = error.response?.data?.message || '';
+            const firstFieldError = Object.values(this.errors || {})[0] || '';
+            this.showToast(backendMessage || firstFieldError || 'Failed to save. Check form fields.');
           }
 
           return false;

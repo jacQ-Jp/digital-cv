@@ -250,8 +250,18 @@ class CvWizardController extends Controller
             'status' => ['required', 'in:draft,published'],
         ]);
 
-        if ($data['status'] === 'published' && ! $cv->public_uuid) {
-            $cv->public_uuid = (string) Str::uuid();
+        if ($data['status'] === 'published') {
+            $publishErrors = $cv->publishingErrors();
+            if (! empty($publishErrors)) {
+                return response()->json([
+                    'message' => 'Cannot publish CV. Complete required personal fields first.',
+                    'errors' => $publishErrors,
+                ], 422);
+            }
+
+            if (! $cv->public_uuid) {
+                $cv->public_uuid = (string) Str::uuid();
+            }
         }
 
         $cv->status = $data['status'];

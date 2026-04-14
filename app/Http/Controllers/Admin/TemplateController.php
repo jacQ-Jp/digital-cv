@@ -55,6 +55,8 @@ class TemplateController extends Controller
                 'is_active' => (bool)($data['is_active'] ?? true),
                 'is_default' => (bool)($data['is_default'] ?? false),
             ]);
+
+            $this->assertSingleDefaultTemplate();
         });
 
         return redirect()->route('admin.templates.index');
@@ -112,6 +114,8 @@ class TemplateController extends Controller
                 'is_active' => (bool)($data['is_active'] ?? $template->is_active),
                 'is_default' => (bool)($data['is_default'] ?? $template->is_default),
             ]);
+
+            $this->assertSingleDefaultTemplate();
         });
 
         return redirect()->route('admin.templates.index')->with('status', 'Template updated.');
@@ -139,6 +143,14 @@ class TemplateController extends Controller
 
         $template->update(['is_active' => ! $template->is_active]);
 
+        $this->assertSingleDefaultTemplate();
+
         return redirect()->route('admin.templates.index')->with('status', 'Template status updated.');
+    }
+
+    private function assertSingleDefaultTemplate(): void
+    {
+        $defaultCount = Template::query()->where('is_default', true)->count();
+        abort_if($defaultCount > 1, 422, 'Only one default template is allowed.');
     }
 }
