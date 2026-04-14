@@ -32,6 +32,8 @@ class CvExperienceController extends Controller
     {
         abort_unless($cv->user_id === Auth::id(), 403);
 
+        $cv->load(['template', 'experiences', 'educations', 'skills']);
+
         return view('experiences.create', compact('cv'));
     }
 
@@ -44,7 +46,7 @@ class CvExperienceController extends Controller
 
         $cv->experiences()->create($request->validated());
 
-        return redirect()->route('cvs.experiences.index', $cv);
+        return redirect()->route('cvs.educations.create', $cv);
     }
 
     /**

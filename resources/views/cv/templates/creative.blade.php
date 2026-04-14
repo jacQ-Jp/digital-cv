@@ -197,7 +197,7 @@
 
     .cv-info-block {
         border: 1px solid #e5e7eb;
-        border-left: 4px solid #4b5563;
+        border-left: 4px solid #7c3aed;
         border-radius: 10px;
         padding: 12px;
         background: #ffffff;
@@ -217,7 +217,7 @@
         left: -14px;
         width: 3px;
         height: 100%;
-        background: linear-gradient(180deg, #4b5563 0%, rgba(107, 114, 128, 0.15) 100%);
+        background: linear-gradient(180deg, #7c3aed 0%, rgba(107, 114, 128, 0.15) 100%);
         border-radius: 3px;
     }
 
@@ -357,7 +357,7 @@
                     <h2 class="cv-section-title">Information</h2>
                     <div class="cv-info-block">
                         <div><strong>Email:</strong> {{ $email }}</div>
-                        <div><strong>Template:</strong> Minimalist</div>
+                        <div><strong>Template:</strong> Creative</div>
                     </div>
                 </section>
             </aside>

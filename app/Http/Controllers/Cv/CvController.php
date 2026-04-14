@@ -7,9 +7,11 @@ use App\Http\Requests\StoreCvRequest;
 use App\Http\Requests\UpdateCvRequest;
 use App\Models\Cv;
 use App\Models\Template;
+use App\Support\CvTemplateRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class CvController extends Controller
@@ -57,7 +59,18 @@ class CvController extends Controller
             return redirect($redirectTo);
         }
 
-        return redirect()->route('cvs.create');
+        $cv = Cv::create([
+            'user_id' => Auth::id(),
+            'title' => 'Untitled CV',
+            'summary' => null,
+            'template_slug' => $template->slug,
+            'status' => 'draft',
+            'personal_name' => Auth::user()?->name,
+            'personal_email' => Auth::user()?->email,
+            'public_uuid' => (string) Str::uuid(),
+        ]);
+
+        return redirect()->route('cvs.wizard', $cv);
     }
 
     /**
@@ -134,7 +147,7 @@ class CvController extends Controller
         // Reset builder selection after successful creation.
         session()->forget('cv_builder.template_slug');
 
-        return redirect()->route('cvs.show', $cv);
+        return redirect()->route('cvs.experiences.create', $cv);
     }
 
     /**
@@ -146,7 +159,8 @@ class CvController extends Controller
 
         $cv->load(['user', 'template', 'experiences', 'educations', 'skills']);
 
-        return view('cvs.show', compact('cv'));
+        // Detail/review should follow the selected CV template.
+        return $this->renderWithTemplateFallback($cv);
     }
 
     /**
@@ -158,7 +172,7 @@ class CvController extends Controller
 
         $cv->load(['user', 'template', 'experiences', 'educations', 'skills']);
 
-        return $this->renderWithTemplateFallback($cv);
+        return $this->renderWithTemplateFallback($cv, ['previewMode' => true]);
     }
 
     /**
@@ -170,31 +184,33 @@ class CvController extends Controller
 
         $cv->load(['user', 'template', 'experiences', 'educations', 'skills']);
 
-        return $this->renderWithTemplateFallback($cv);
+        return $this->renderWithTemplateFallback($cv, ['previewMode' => true]);
     }
 
-    private function renderWithTemplateFallback(Cv $cv): View
+    public function publicByUuid(string $token): View
     {
-        $slug = $cv->template_slug;
+        $cv = Cv::query()
+            ->where('public_uuid', $token)
+            ->where('status', 'published')
+            ->first();
 
-        // Views are stored in: resources/views/cv/templates/{slug}.blade.php
-        $view = $slug ? "cv.templates.$slug" : null;
-
-        if ($view && view()->exists($view)) {
-            return view($view, compact('cv'));
+        if (! $cv && ctype_digit($token)) {
+            $cv = Cv::query()
+                ->whereKey((int) $token)
+                ->where('status', 'published')
+                ->first();
         }
 
-        // Prefer DB default if it exists and has a view, otherwise use hard default view.
-        $defaultSlug = Template::query()->where('is_default', true)->value('slug');
-        if ($defaultSlug && view()->exists("cv.templates.$defaultSlug")) {
-            return view("cv.templates.$defaultSlug", compact('cv'));
-        }
+        abort_if(! $cv, 404);
 
-        if (view()->exists('cv.templates.default')) {
-            return view('cv.templates.default', compact('cv'));
-        }
+        $cv->load(['user', 'template', 'experiences', 'educations', 'skills']);
 
-        abort(500, 'No template view available.');
+        return $this->renderWithTemplateFallback($cv, ['previewMode' => true]);
+    }
+
+    private function renderWithTemplateFallback(Cv $cv, array $extraData = []): View
+    {
+        return app(CvTemplateRenderer::class)->render($cv, $extraData);
     }
 
     /**

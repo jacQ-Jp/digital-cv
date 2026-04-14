@@ -7,9 +7,24 @@
             <h1 class="h3 mb-1">{{ $cv->title }}</h1>
             <div class="text-muted small">Status: {{ $cv->status }} | Template: {{ $cv->template?->name ?? $cv->template_slug }}</div>
             <div class="mt-2 d-flex flex-wrap gap-2">
-                <a class="btn btn-sm btn-outline-secondary" href="{{ route('cvs.render', $cv) }}">Preview Render</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{{ route('cvs.render', $cv) }}" target="_blank" rel="noopener">Preview Render</a>
+                <button
+                    type="button"
+                    id="savePdfBtn"
+                    class="btn btn-sm btn-outline-dark"
+                    data-render-url="{{ route('cvs.render', $cv) }}"
+                >
+                    Save PDF
+                </button>
                 @if($cv->status === 'published')
-                    <a class="btn btn-sm btn-outline-success" href="{{ route('cvs.public', $cv) }}" target="_blank" rel="noopener">Public Link</a>
+                    <button
+                        type="button"
+                        id="copyPublicBtn"
+                        class="btn btn-sm btn-outline-success"
+                        data-public-url="{{ route('cvs.public', ['token' => $cv->public_uuid ?: $cv->id]) }}"
+                    >
+                        Copy Public Link
+                    </button>
                 @endif
             </div>
         </div>
@@ -99,4 +114,56 @@
         <a class="btn btn-outline-secondary" href="{{ route('cvs.index') }}">Back</a>
     </div>
 </div>
+
+<script>
+(() => {
+    const copyBtn = document.getElementById('copyPublicBtn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+            const url = copyBtn.getAttribute('data-public-url');
+            if (!url) return;
+
+            try {
+                await navigator.clipboard.writeText(url);
+                const prev = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = prev;
+                }, 1200);
+            } catch {
+                window.prompt('Copy this link:', url);
+            }
+        });
+    }
+
+    const pdfBtn = document.getElementById('savePdfBtn');
+    if (pdfBtn) {
+        pdfBtn.addEventListener('click', () => {
+            const renderUrl = pdfBtn.getAttribute('data-render-url');
+            if (!renderUrl) return;
+
+            const printWindow = window.open(renderUrl, '_blank');
+            if (!printWindow) return;
+
+            const started = Date.now();
+            const timer = setInterval(() => {
+                if (Date.now() - started > 12000) {
+                    clearInterval(timer);
+                    return;
+                }
+
+                try {
+                    if (printWindow.document && printWindow.document.readyState === 'complete') {
+                        clearInterval(timer);
+                        printWindow.focus();
+                        printWindow.print();
+                    }
+                } catch {
+                    // keep polling while cross-window is still initializing
+                }
+            }, 350);
+        });
+    }
+})();
+</script>
 @endsection

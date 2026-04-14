@@ -16,6 +16,7 @@ class CvSkillController extends Controller
     {
         abort_unless($cv->user_id === Auth::id(), 403);
 
+        $cv->load(['template', 'experiences', 'educations', 'skills']);
         $skills = $cv->skills()->latest()->get();
 
         return view('skills.index', compact('cv', 'skills'));
@@ -24,6 +25,8 @@ class CvSkillController extends Controller
     public function create(Cv $cv): View
     {
         abort_unless($cv->user_id === Auth::id(), 403);
+
+        $cv->load(['template', 'experiences', 'educations', 'skills']);
 
         return view('skills.create', compact('cv'));
     }

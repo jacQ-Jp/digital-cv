@@ -5,17 +5,110 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ config('app.name', 'Laravel') }}</title>
 
-    {{-- App CSS/JS (Tailwind via Vite) --}}
-    @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
+    @php($isCvRender = request()->routeIs('cvs.show') || request()->routeIs('cvs.render') || request()->routeIs('cvs.public') || ($previewMode ?? false))
+
+    @if($isCvRender)
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            body.cv-render-body {
+                margin: 0;
+                background: #f3f4f6;
+                color: #111827;
+                font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+            }
+
+            .cv-paper {
+                width: min(794px, calc(100% - 2rem));
+                min-height: 1123px;
+                margin: 1.5rem auto;
+                padding: 48px;
+                background: #ffffff;
+                box-shadow: 0 16px 42px rgba(15, 23, 42, 0.12);
+                overflow-x: hidden;
+            }
+
+            .cv-paper,
+            .cv-paper * {
+                box-sizing: border-box;
+            }
+
+            .cv-paper-grid {
+                display: grid;
+                grid-template-columns: 2fr 1fr;
+                gap: 28px;
+                margin-top: 30px;
+            }
+
+            .cv-paper-grid > * {
+                min-width: 0;
+            }
+
+            .cv-item-head {
+                flex-wrap: wrap;
+            }
+
+            .cv-item-date {
+                white-space: normal !important;
+                text-align: right;
+            }
+
+            .cv-paper .cv-name,
+            .cv-paper .cv-role,
+            .cv-paper .cv-email,
+            .cv-paper .cv-summary,
+            .cv-paper .cv-item-main,
+            .cv-paper .cv-item-sub,
+            .cv-paper .cv-item-desc,
+            .cv-paper .cv-skill-tag,
+            .cv-paper .cv-info-block,
+            .cv-paper .cv-muted {
+                overflow-wrap: anywhere;
+                word-break: break-word;
+            }
+
+            @media (max-width: 900px) {
+                .cv-paper {
+                    width: calc(100% - 1rem);
+                    padding: 28px 22px;
+                }
+
+                .cv-paper-grid {
+                    grid-template-columns: 1fr;
+                    gap: 22px;
+                }
+            }
+
+            @media print {
+                body.cv-render-body {
+                    background: #fff !important;
+                    margin: 0 !important;
+                }
+
+                .cv-paper {
+                    width: 100% !important;
+                    min-height: auto !important;
+                    margin: 0 !important;
+                    padding: 24px !important;
+                    box-shadow: none !important;
+                }
+            }
+        </style>
+    @endif
+
+    {{-- App CSS/JS for dashboard/admin UI only --}}
+    @if(! $isCvRender && (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot'))))
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @endif
 
     {{-- Minimal Bootstrap via CDN for basic CRUD UI --}}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    @if(! $isCvRender)
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    @endif
 </head>
-<body>
-@php($isCvRender = request()->routeIs('cvs.render') || request()->routeIs('cvs.public'))
-
+<body class="{{ $isCvRender ? 'cv-render-body' : '' }}">
 @if(! $isCvRender)
 <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom mb-4">
     <div class="container">

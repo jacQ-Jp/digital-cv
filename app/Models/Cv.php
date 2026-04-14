@@ -15,8 +15,12 @@ class Cv extends Model
         'user_id',
         'title',
         'summary',
+        'personal_name',
+        'personal_email',
+        'photo_path',
         'template_slug',
         'status',
+        'public_uuid',
     ];
 
     public function user(): BelongsTo
