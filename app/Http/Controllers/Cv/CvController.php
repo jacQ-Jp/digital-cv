@@ -3,276 +3,153 @@
 namespace App\Http\Controllers\Cv;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreCvRequest;
-use App\Http\Requests\UpdateCvRequest;
 use App\Models\Cv;
 use App\Models\Template;
-use App\Support\CvTemplateRenderer;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use Illuminate\View\View;
 
 class CvController extends Controller
 {
-    // Step 1: show active templates for selection
-    public function selectTemplate(): View
+    public function index()
     {
-        $templates = Template::query()
-            ->where('is_active', true)
-            ->orderByDesc('is_default')
-            ->orderBy('name')
+        $cvs = Cv::query()
+            ->where('user_id', auth()->id())
+            ->with(['experiences', 'educations', 'skills', 'template'])
+            ->when(request('q'), fn($q, $s) => $q->where('title', 'like', "%{$s}%"))
+            ->when(request('status'), fn($q, $s) => $q->where('status', $s))
+            ->when(request('template'), fn($q, $s) => $q->where('template_slug', $s))
+            ->latest('updated_at')
             ->get();
 
+        $templates = Template::where('is_active', true)->get();
+
+        return view('cvs.index', compact('cvs', 'templates'));
+    }
+
+    public function selectTemplate()
+    {
+        $templates = Template::where('is_active', true)->get();
         return view('cvs.select-template', compact('templates'));
     }
 
-    // Step 1: persist template selection in session (fallback to default)
-    public function saveTemplateSelection(Request $request): RedirectResponse
+    public function saveTemplateSelection(Request $request)
     {
         $request->validate([
-            'template_slug' => ['nullable', 'string', 'exists:templates,slug'],
-            'redirect_to' => ['nullable', 'string'],
+            'template_slug' => 'required|exists:templates,slug',
+            'title' => 'nullable|string|max:255',
         ]);
 
-        $selectedSlug = $request->input('template_slug');
-
-        $template = null;
-        if ($selectedSlug) {
-            $template = Template::query()->where('is_active', true)->where('slug', $selectedSlug)->first();
-        }
-
-        if (! $template) {
-            $template = Template::query()->where('is_default', true)->first()
-                ?? Template::query()->where('is_active', true)->orderBy('id')->first();
-        }
-
-        if (! $template) {
-            abort(422, 'No active template available.');
-        }
-
-        session(['cv_builder.template_slug' => $template->slug]);
-
-        $redirectTo = $request->input('redirect_to');
-        if (is_string($redirectTo) && str_starts_with($redirectTo, '/')) {
-            return redirect($redirectTo);
-        }
-
         $cv = Cv::create([
-            'user_id' => Auth::id(),
-            'title' => 'Untitled CV',
-            'summary' => null,
-            'template_slug' => $template->slug,
+            'user_id' => auth()->id(),
+            'title' => $request->title ?: 'Untitled CV',
+            'template_slug' => $request->template_slug,
             'status' => 'draft',
-            'personal_name' => Auth::user()?->name,
-            'personal_email' => Auth::user()?->email,
-            'public_uuid' => (string) Str::uuid(),
+            'public_uuid' => Str::uuid()->toString(),
         ]);
 
         return redirect()->route('cvs.wizard', $cv);
     }
 
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(): View
+    public function show(Cv $cv)
     {
-        $query = Cv::query()->where('user_id', Auth::id());
-
-        $status = request()->string('status')->toString();
-        if (in_array($status, ['draft', 'published'], true)) {
-            $query->where('status', $status);
-        }
-
-        $template = request()->string('template')->toString();
-        if ($template !== '') {
-            $query->where('template_slug', $template);
-        }
-
-        $search = trim((string) request()->get('q', ''));
-        if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('summary', 'like', "%{$search}%");
-            });
-        }
-
-        $cvs = $query->latest()->get();
-
-        $templates = Template::query()
-            ->where('is_active', true)
-            ->orderByDesc('is_default')
-            ->orderBy('name')
-            ->get(['name', 'slug', 'thumbnail']);
-
-        return view('cvs.index', compact('cvs', 'templates', 'status', 'template', 'search'));
+        $this->own($cv);
+        $cv->load(['experiences', 'educations', 'skills', 'template']);
+        return view('cvs.show', compact('cv'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create(): View|RedirectResponse
+    public function edit(Cv $cv)
     {
-        $selectedTemplateSlug = session('cv_builder.template_slug');
-
-        // Hard-enforce: must pick a template first (step 1).
-        if (! $selectedTemplateSlug) {
-            return redirect()->route('cv-builder.templates');
-        }
-
-        $templates = Template::query()->where('is_active', true)->orderBy('name')->get();
-
-        return view('cvs.create', [
-            'templates' => $templates,
-            'selectedTemplateSlug' => $selectedTemplateSlug,
-        ]);
+        $this->own($cv);
+        return redirect()->route('cvs.wizard', $cv);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreCvRequest $request): RedirectResponse
+    public function update(Request $request, Cv $cv) { $this->own($cv); }
+
+    public function destroy(Cv $cv)
     {
-        $templateSlug = $request->validated('template_slug');
-
-        $cv = Cv::create([
-            'user_id' => Auth::id(),
-            'title' => $request->validated('title'),
-            'summary' => $request->validated('summary'),
-            'template_slug' => $templateSlug,
-            'status' => $request->validated('status'),
-        ]);
-
-        // Reset builder selection after successful creation.
-        session()->forget('cv_builder.template_slug');
-
-        return redirect()->route('cvs.experiences.create', $cv);
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Cv $cv): View
-    {
-        abort_unless($cv->user_id === Auth::id(), 403);
-
-        $cv->load(['user', 'template', 'experiences', 'educations', 'skills']);
-
-        // Detail/review should follow the selected CV template.
-        return $this->renderWithTemplateFallback($cv);
-    }
-
-    /**
-     * Render CV dynamically based on template_slug (private preview).
-     */
-    public function render(Cv $cv): View
-    {
-        abort_unless($cv->user_id === Auth::id(), 403);
-
-        $cv->load(['user', 'template', 'experiences', 'educations', 'skills']);
-
-        return $this->renderWithTemplateFallback($cv, ['previewMode' => true]);
-    }
-
-    /**
-     * Public CV (published only).
-     */
-    public function public(Cv $cv): View
-    {
-        abort_unless($cv->status === 'published', 404);
-
-        $cv->load(['user', 'template', 'experiences', 'educations', 'skills']);
-
-        return $this->renderWithTemplateFallback($cv, ['previewMode' => true]);
-    }
-
-    public function publicByUuid(string $token): View
-    {
-        $cv = Cv::query()
-            ->where('public_uuid', $token)
-            ->where('status', 'published')
-            ->first();
-
-        if (! $cv && ctype_digit($token)) {
-            $cv = Cv::query()
-                ->whereKey((int) $token)
-                ->where('status', 'published')
-                ->first();
-        }
-
-        abort_if(! $cv, 404);
-
-        $cv->load(['user', 'template', 'experiences', 'educations', 'skills']);
-
-        return $this->renderWithTemplateFallback($cv, ['previewMode' => true]);
-    }
-
-    private function renderWithTemplateFallback(Cv $cv, array $extraData = []): View
-    {
-        return app(CvTemplateRenderer::class)->render($cv, $extraData);
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Cv $cv): View
-    {
-        abort_unless($cv->user_id === Auth::id(), 403);
-
-        $templates = Template::query()->where('is_active', true)->orderBy('name')->get();
-
-        return view('cvs.edit', compact('cv', 'templates'));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateCvRequest $request, Cv $cv): RedirectResponse
-    {
-        abort_unless($cv->user_id === Auth::id(), 403);
-
-        $cv->update($request->validated());
-
-        return redirect()->route('cvs.show', $cv);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Cv $cv): RedirectResponse
-    {
-        abort_unless($cv->user_id === Auth::id(), 403);
-
+        $this->own($cv);
         $cv->delete();
-
-        return redirect()->route('cvs.index');
+        return back()->with('success', 'CV berhasil dihapus.');
     }
 
-    public function togglePublish(Cv $cv): RedirectResponse
+    public function previewTemplate(string $slug)
     {
-        abort_unless($cv->user_id === Auth::id(), 403);
+        $cv = (object) [
+            'title' => 'Professional Profile',
+            'summary' => 'Experienced professional with a proven track record of delivering results.',
+            'personal_name' => 'Alex Johnson',
+            'personal_email' => 'alex.johnson@email.com',
+            'personal_phone' => '+62 812 3456 7890',
+            'personal_location' => 'Jakarta, Indonesia',
+            'personal_linkedin' => 'linkedin.com/in/alexjohnson',
+            'photo_path' => null,
+            'template_slug' => $slug,
+            'experiences' => collect([
+                (object) ['position' => 'Senior Product Designer', 'company' => 'TechCorp Indonesia', 'start_date' => '2022', 'end_date' => null, 'description' => 'Led design system initiative serving 12 product teams.'],
+                (object) ['position' => 'UI/UX Designer', 'company' => 'Creative Studio', 'start_date' => '2019', 'end_date' => '2022', 'description' => 'Designed and shipped 20+ mobile and web applications.'],
+                (object) ['position' => 'Junior Designer', 'company' => 'StartUp Inc.', 'start_date' => '2017', 'end_date' => '2019', 'description' => null],
+            ]),
+            'educations' => collect([
+                (object) ['school' => 'Universitas Indonesia', 'degree' => 'Bachelor of Design', 'year' => '2017'],
+            ]),
+            'skills' => collect([
+                (object) ['name' => 'Figma'], (object) ['name' => 'UI Design'], (object) ['name' => 'UX Research'],
+                (object) ['name' => 'Prototyping'], (object) ['name' => 'Design Systems'], (object) ['name' => 'Tailwind CSS'],
+            ]),
+            'user' => (object) ['name' => 'Alex Johnson', 'email' => 'alex.johnson@email.com'],
+        ];
 
-        $nextStatus = $cv->status === 'published' ? 'draft' : 'published';
-        if ($nextStatus === 'published') {
-            $publishErrors = $cv->publishingErrors();
-            if (! empty($publishErrors)) {
-                return redirect()
-                    ->back()
-                    ->withErrors($publishErrors)
-                    ->with('status', 'Cannot publish CV. Complete required personal fields first.');
-            }
+        return response()->view($this->tplView($slug), ['cv' => $cv, 'layout' => 'layouts.thumb'])
+            ->header('Content-Type', 'text/html')
+            ->header('X-Frame-Options', 'SAMEORIGIN');
+    }
 
-            if (! $cv->public_uuid) {
-                $cv->public_uuid = (string) Str::uuid();
-            }
+    public function render(Cv $cv)
+    {
+        $this->own($cv);
+        $cv->load(['experiences', 'educations', 'skills', 'user']);
+        return view($this->tplView($cv->template_slug), ['cv' => $cv, 'layout' => 'layouts.render']);
+    }
+
+    public function thumbnail(Cv $cv)
+    {
+        $this->own($cv);
+        $cv->load(['experiences', 'educations', 'skills', 'user']);
+        return response()->view($this->tplView($cv->template_slug), ['cv' => $cv, 'layout' => 'layouts.thumb'])
+            ->header('Content-Type', 'text/html')
+            ->header('X-Frame-Options', 'SAMEORIGIN');
+    }
+
+    public function publicByUuid($token)
+    {
+        $cv = Cv::where('public_uuid', $token)->where('status', 'published')->firstOrFail();
+        $cv->load(['experiences', 'educations', 'skills', 'user']);
+        return view($this->tplView($cv->template_slug), ['cv' => $cv, 'layout' => 'layouts.render']);
+    }
+
+    public function togglePublish(Cv $cv)
+    {
+        $this->own($cv);
+        if ($cv->status === 'published') {
+            $cv->update(['status' => 'draft']);
+            return back()->with('success', 'CV ditarik sebagai draft.');
         }
+        $errors = $cv->publishingErrors();
+        if (!empty($errors)) return back()->withErrors($errors);
+        if (empty($cv->public_uuid)) $cv->public_uuid = Str::uuid()->toString();
+        $cv->status = 'published';
+        $cv->save();
+        return back()->with('success', 'CV berhasil dipublikasikan.');
+    }
 
-        $cv->update([
-            'status' => $nextStatus,
-            'public_uuid' => $cv->public_uuid,
-        ]);
+    private function tplView(?string $slug): string
+    {
+        $view = "templates.{$slug}";
+        return view()->exists($view) ? $view : 'templates.default';
+    }
 
-        return redirect()->route('cvs.index')->with('status', 'CV status updated.');
+    private function own(Cv $cv): void
+    {
+        if ($cv->user_id !== auth()->id()) abort(403);
     }
 }

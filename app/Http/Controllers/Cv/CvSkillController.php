@@ -22,13 +22,11 @@ class CvSkillController extends Controller
         return view('skills.index', compact('cv', 'skills'));
     }
 
-    public function create(Cv $cv): View
+    public function create(Cv $cv): RedirectResponse
     {
         abort_unless($cv->user_id === Auth::id(), 403);
 
-        $cv->load(['template', 'experiences', 'educations', 'skills']);
-
-        return view('skills.create', compact('cv'));
+        return redirect()->route('cvs.wizard', $cv);
     }
 
     public function store(Request $request, Cv $cv): RedirectResponse

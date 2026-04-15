@@ -10,27 +10,35 @@ class CvTemplateRenderer
 {
     public function resolveView(Cv $cv): string
     {
-        $slug = $cv->template_slug;
-        if ($slug && $this->canRenderTemplateSlug($cv, $slug)) {
-            return "cv.templates.$slug";
+        $slug = trim((string) $cv->template_slug);
+        if ($slug !== '') {
+            $resolvedView = $this->resolveViewNameForSlug($slug);
+            if ($resolvedView) {
+                return $resolvedView;
+            }
+        }
+
+        if (view()->exists('templates.default')) {
+            return 'templates.default';
         }
 
         $defaultSlug = Template::query()->where('is_default', true)->value('slug');
-        if ($defaultSlug && view()->exists("cv.templates.$defaultSlug")) {
-            return "cv.templates.$defaultSlug";
+        if ($defaultSlug) {
+            $resolvedView = $this->resolveViewNameForSlug($defaultSlug);
+            if ($resolvedView) {
+                return $resolvedView;
+            }
         }
 
-        $firstActiveSlug = Template::query()
-            ->where('is_active', true)
+        $firstTemplateSlug = Template::query()
             ->orderByDesc('is_default')
             ->orderBy('id')
             ->value('slug');
-        if ($firstActiveSlug && view()->exists("cv.templates.$firstActiveSlug")) {
-            return "cv.templates.$firstActiveSlug";
-        }
-
-        if (view()->exists('cv.templates.default')) {
-            return 'cv.templates.default';
+        if ($firstTemplateSlug) {
+            $resolvedView = $this->resolveViewNameForSlug($firstTemplateSlug);
+            if ($resolvedView) {
+                return $resolvedView;
+            }
         }
 
         abort(500, 'No template view available.');
@@ -42,25 +50,21 @@ class CvTemplateRenderer
 
         $view = $this->resolveView($cv);
 
-        return view($view, array_merge(['cv' => $cv], $extraData));
+        $embedded = $extraData['embedded'] ?? false;
+        $layout = $embedded ? 'layouts.thumb' : 'layouts.render';
+
+        return view($view, array_merge(['cv' => $cv, 'layout' => $layout], $extraData));
     }
 
-    private function canRenderTemplateSlug(Cv $cv, string $slug): bool
+    private function resolveViewNameForSlug(string $slug): ?string
     {
-        $viewName = "cv.templates.$slug";
-        if (! view()->exists($viewName)) {
-            return false;
+        $slug = trim($slug);
+        if ($slug === '') {
+            return null;
         }
 
-        $template = null;
-        if ($cv->relationLoaded('template') && $cv->template && $cv->template->slug === $slug) {
-            $template = $cv->template;
-        }
+        $viewName = "templates.$slug";
 
-        if (! $template) {
-            $template = Template::query()->where('slug', $slug)->first();
-        }
-
-        return (bool) ($template?->is_active);
+        return view()->exists($viewName) ? $viewName : null;
     }
 }

@@ -39,7 +39,7 @@ class TemplateController extends Controller
             'is_default' => ['sometimes', 'boolean'],
         ]);
 
-        abort_unless(view()->exists("cv.templates.{$data['slug']}"), 422, 'Template view not found.');
+        abort_unless(view()->exists("templates.{$data['slug']}"), 422, 'Template view not found.');
 
         DB::transaction(function () use ($data) {
             if (!empty($data['is_default'])) {
@@ -80,7 +80,7 @@ class TemplateController extends Controller
             'is_default' => ['sometimes', 'boolean'],
         ]);
 
-        abort_unless(view()->exists("cv.templates.{$data['slug']}"), 422, 'Template view not found.');
+        abort_unless(view()->exists("templates.{$data['slug']}"), 422, 'Template view not found.');
 
         $isUsed = $template->cvs()->exists();
 

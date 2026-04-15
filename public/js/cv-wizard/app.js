@@ -3,7 +3,6 @@ import { ExperienceStep } from './components/experience-step.js';
 import { EducationStep } from './components/education-step.js';
 import { SkillsStep } from './components/skills-step.js';
 import { ReviewStep } from './components/review-step.js';
-import { CvLivePreview } from './components/cv-live-preview.js';
 
 const { createApp } = window.Vue;
 
@@ -12,6 +11,113 @@ const root = document.getElementById('cvWizardRoot');
 if (root) {
   const cvId = root.getAttribute('data-cv-id');
   const baseUrl = `/cvs/${cvId}/wizard`;
+  const initialTemplateSlug = root.getAttribute('data-template-slug') || 'default';
+  const initialTemplateName = root.getAttribute('data-template-name') || 'Default';
+
+  const getCsrfToken = () => {
+    const fromMeta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (fromMeta) {
+      return fromMeta;
+    }
+
+    const cookie = document.cookie
+      .split('; ')
+      .find((row) => row.startsWith('XSRF-TOKEN='));
+
+    return cookie ? decodeURIComponent(cookie.split('=')[1] || '') : '';
+  };
+
+  const buildFallbackPreviewHtml = (message, slug) => `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;padding:16px;color:#334155;">${message} Template: <strong>${slug || initialTemplateSlug}</strong></body></html>`;
+
+  const normalizeResponseData = async (response) => {
+    const contentType = response.headers.get('content-type') || '';
+
+    if (contentType.includes('application/json')) {
+      return response.json();
+    }
+
+    const text = await response.text();
+
+    if (!text) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
+  };
+
+  const requestWithFetch = async (method, url, data = null, config = {}) => {
+    const headers = {
+      'X-Requested-With': 'XMLHttpRequest',
+      ...(config.headers || {}),
+    };
+
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      headers['X-CSRF-TOKEN'] = csrfToken;
+    }
+
+    const requestInit = {
+      method,
+      credentials: 'same-origin',
+      headers,
+    };
+
+    if (data instanceof FormData) {
+      requestInit.body = data;
+      delete requestInit.headers['Content-Type'];
+    } else if (data !== null && data !== undefined) {
+      if (!requestInit.headers['Content-Type']) {
+        requestInit.headers['Content-Type'] = 'application/json';
+      }
+      requestInit.body = JSON.stringify(data);
+    }
+
+    const response = await fetch(url, requestInit);
+    const responseData = await normalizeResponseData(response);
+
+    if (!response.ok) {
+      const error = new Error(`Request failed with status ${response.status}`);
+      error.response = {
+        status: response.status,
+        data: responseData,
+      };
+
+      throw error;
+    }
+
+    return {
+      status: response.status,
+      data: responseData,
+    };
+  };
+
+  const httpClient = {
+    get(url, config = {}) {
+      if (window.axios) {
+        return window.axios.get(url, config);
+      }
+
+      return requestWithFetch('GET', url, null, config);
+    },
+    post(url, data = null, config = {}) {
+      if (window.axios) {
+        return window.axios.post(url, data, config);
+      }
+
+      return requestWithFetch('POST', url, data, config);
+    },
+    put(url, data = null, config = {}) {
+      if (window.axios) {
+        return window.axios.put(url, data, config);
+      }
+
+      return requestWithFetch('PUT', url, data, config);
+    },
+  };
 
   createApp({
     components: {
@@ -20,7 +126,6 @@ if (root) {
       EducationStep,
       SkillsStep,
       ReviewStep,
-      CvLivePreview,
     },
     data() {
       return {
@@ -38,6 +143,11 @@ if (root) {
         autosaveTimer: null,
         photoObjectUrl: null,
         lastSavedAt: '',
+        previewHtml: buildFallbackPreviewHtml('Menyiapkan preview template.', initialTemplateSlug),
+        previewResolvedSlug: initialTemplateSlug,
+        previewLoading: false,
+        previewRenderTimer: null,
+        previewRequestId: 0,
         form: {
           personal: {
             title: '',
@@ -57,9 +167,10 @@ if (root) {
         },
         state: {
           cv: {
-            id: null,
+            id: Number(cvId) || null,
             title: '',
-            template_name: '',
+            template_slug: initialTemplateSlug,
+            template_name: initialTemplateName,
             status: 'draft',
             public_url: '',
           },
@@ -92,6 +203,7 @@ if (root) {
       },
     },
     mounted() {
+      this.schedulePreviewRender();
       this.fetchState();
     },
     methods: {
@@ -112,11 +224,70 @@ if (root) {
         }
       },
       async fetchState() {
-        const response = await window.axios.get(`${baseUrl}/state`);
-        this.applyState(response.data);
+        try {
+          const response = await httpClient.get(`${baseUrl}/state`);
+          this.applyState(response.data);
+        } catch (error) {
+          const message = error.response?.data?.message || 'Gagal memuat data CV. Preview tetap bisa digunakan.';
+          this.showToast(message);
+          this.schedulePreviewRender();
+        }
+      },
+      buildPreviewPayload() {
+        return {
+          title: this.form.personal.title || '',
+          personal_name: this.form.personal.personal_name || '',
+          personal_email: this.form.personal.personal_email || '',
+          summary: this.form.personal.summary || '',
+          photo_url: this.form.personal.photo_url || null,
+          experiences: this.form.experiences,
+          educations: this.form.educations,
+          skills: this.form.skills,
+        };
+      },
+      schedulePreviewRender() {
+        clearTimeout(this.previewRenderTimer);
+        this.previewRenderTimer = setTimeout(() => {
+          this.renderTemplatePreview();
+        }, 120);
+      },
+      async renderTemplatePreview() {
+        const requestId = ++this.previewRequestId;
+        this.previewLoading = true;
+
+        try {
+          const response = await httpClient.post(`${baseUrl}/preview/live`, this.buildPreviewPayload());
+
+          if (requestId !== this.previewRequestId) {
+            return;
+          }
+
+          this.previewHtml = response?.data?.html || '';
+          this.previewResolvedSlug = response?.data?.resolved_slug || response?.data?.template_slug || this.previewData.templateSlug || 'default';
+
+          if (!this.previewHtml) {
+            this.previewHtml = buildFallbackPreviewHtml('Preview kosong.', this.previewResolvedSlug);
+          }
+        } catch {
+          if (requestId !== this.previewRequestId) {
+            return;
+          }
+
+          this.previewResolvedSlug = this.previewData.templateSlug || this.state.cv.template_slug || 'default';
+          this.previewHtml = buildFallbackPreviewHtml('Gagal memuat preview template.', this.previewResolvedSlug);
+        } finally {
+          if (requestId === this.previewRequestId) {
+            this.previewLoading = false;
+          }
+        }
       },
       applyState(payload) {
-        this.state.cv = payload.cv;
+        const cvPayload = payload?.cv || {};
+
+        this.state.cv = {
+          ...this.state.cv,
+          ...cvPayload,
+        };
 
         if (this.photoObjectUrl) {
           URL.revokeObjectURL(this.photoObjectUrl);
@@ -124,19 +295,21 @@ if (root) {
         }
 
         this.form.personal = {
-          title: payload.cv.title || '',
-          personal_name: payload.cv.personal_name || '',
-          personal_email: payload.cv.personal_email || '',
-          summary: payload.cv.summary || '',
-          photo_url: payload.cv.photo_url || null,
+          title: cvPayload.title || '',
+          personal_name: cvPayload.personal_name || '',
+          personal_email: cvPayload.personal_email || '',
+          summary: cvPayload.summary || '',
+          photo_url: cvPayload.photo_url || null,
           photoFile: null,
           remove_photo: false,
         };
 
-        this.form.experiences = payload.experiences || [];
-        this.form.educations = payload.educations || [];
-        this.form.skills = payload.skills || [];
-        this.form.review.status = payload.cv.status || 'draft';
+        this.form.experiences = Array.isArray(payload?.experiences) ? payload.experiences : [];
+        this.form.educations = Array.isArray(payload?.educations) ? payload.educations : [];
+        this.form.skills = Array.isArray(payload?.skills) ? payload.skills : [];
+        this.form.review.status = cvPayload.status || 'draft';
+
+        this.schedulePreviewRender();
       },
       stepClass(stepNumber) {
         if (stepNumber < this.currentStep) return 'is-done';
@@ -225,31 +398,31 @@ if (root) {
               fd.append('photo', this.form.personal.photoFile);
             }
 
-            response = await window.axios.post(`${baseUrl}/personal?_method=PUT`, fd, {
+            response = await httpClient.post(`${baseUrl}/personal?_method=PUT`, fd, {
               headers: { 'Content-Type': 'multipart/form-data' },
             });
           }
 
           if (step === 2) {
-            response = await window.axios.put(`${baseUrl}/experiences`, {
+            response = await httpClient.put(`${baseUrl}/experiences`, {
               experiences: this.form.experiences,
             });
           }
 
           if (step === 3) {
-            response = await window.axios.put(`${baseUrl}/educations`, {
+            response = await httpClient.put(`${baseUrl}/educations`, {
               educations: this.form.educations,
             });
           }
 
           if (step === 4) {
-            response = await window.axios.put(`${baseUrl}/skills`, {
+            response = await httpClient.put(`${baseUrl}/skills`, {
               skills: this.form.skills,
             });
           }
 
           if (step === 5) {
-            response = await window.axios.put(`${baseUrl}/review`, {
+            response = await httpClient.put(`${baseUrl}/review`, {
               status: this.form.review.status,
             });
           }
@@ -300,6 +473,7 @@ if (root) {
         }
 
         this.form.personal = next;
+        this.schedulePreviewRender();
         this.scheduleAutosave();
       },
       removePhoto() {
@@ -311,39 +485,92 @@ if (root) {
         this.form.personal.photo_url = null;
         this.form.personal.photoFile = null;
         this.form.personal.remove_photo = true;
+        this.schedulePreviewRender();
         this.scheduleAutosave();
       },
       updateExperiences(items) {
         this.form.experiences = items;
+        this.schedulePreviewRender();
         this.scheduleAutosave();
       },
       updateEducations(items) {
         this.form.educations = items;
+        this.schedulePreviewRender();
         this.scheduleAutosave();
       },
       updateSkills(items) {
         this.form.skills = items;
+        this.schedulePreviewRender();
         this.scheduleAutosave();
       },
-      updateReviewStatus(status) {
-        this.form.review.status = status;
+      redirectToCvListWithNotice(noticeKey) {
+        const url = new URL('/cvs', window.location.origin);
+        url.searchParams.set('wizard_notice', noticeKey);
+        window.location.assign(url.toString());
       },
-      async finishPublish() {
-        const ok = await this.saveStep(5);
-        if (!ok) return;
+      async autoCopyText(text) {
+        if (!text) return false;
 
-        this.showToast(this.form.review.status === 'published' ? 'CV published.' : 'Draft saved.');
-      },
-      async copyPublicLink() {
-        const url = this.state.cv.public_url;
-        if (!url) return;
+        if (navigator.clipboard?.writeText) {
+          try {
+            await navigator.clipboard.writeText(text);
+            return true;
+          } catch {
+            // Continue with legacy fallback.
+          }
+        }
 
         try {
-          await navigator.clipboard.writeText(url);
-          this.showToast('Link copied');
+          const input = document.createElement('textarea');
+          input.value = text;
+          input.setAttribute('readonly', '');
+          input.style.position = 'fixed';
+          input.style.left = '-9999px';
+          document.body.appendChild(input);
+          input.select();
+          input.setSelectionRange(0, input.value.length);
+          const copied = document.execCommand('copy');
+          document.body.removeChild(input);
+          return copied;
         } catch {
-          window.prompt('Copy this link:', url);
+          return false;
         }
+      },
+      async saveDraft() {
+        this.form.review.status = 'draft';
+        const ok = await this.saveStep(5, true);
+        if (!ok) {
+          const firstFieldError = Object.values(this.errors || {})[0] || 'Gagal menyimpan draft.';
+          this.showToast(firstFieldError);
+          return;
+        }
+
+        this.showToast('Draft berhasil disimpan');
+        window.setTimeout(() => {
+          this.redirectToCvListWithNotice('draft_saved');
+        }, 350);
+      },
+      async publishCv() {
+        this.form.review.status = 'published';
+        const ok = await this.saveStep(5, true);
+        if (!ok) {
+          const firstFieldError = Object.values(this.errors || {})[0] || 'Gagal publish CV.';
+          this.showToast(firstFieldError);
+          return;
+        }
+
+        const url = this.state.cv.public_url;
+        if (!url) {
+          this.showToast('CV published, namun public link belum tersedia.');
+          return;
+        }
+
+        const copied = await this.autoCopyText(url);
+        this.showToast(copied ? 'Link berhasil disalin' : 'CV published. Link tersedia di halaman publik.');
+
+        window.setTimeout(() => {
+          window.location.assign(url);
+        }, copied ? 500 : 700);
       },
       downloadPdf() {
         window.open(`${baseUrl}/pdf`, '_blank');

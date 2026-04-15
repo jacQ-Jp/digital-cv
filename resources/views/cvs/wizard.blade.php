@@ -2,7 +2,13 @@
 
 @section('content')
 <div class="container-fluid py-3">
-    <div id="cvWizardRoot" data-cv-id="{{ $cv->id }}" class="wizard-shell">
+    <div
+        id="cvWizardRoot"
+        data-cv-id="{{ $cv->id }}"
+        data-template-slug="{{ $cv->template_slug ?? optional($cv->template)->slug ?? 'default' }}"
+        data-template-name="{{ optional($cv->template)->name ?? ($cv->template_slug ?? 'Default') }}"
+        class="wizard-shell"
+    >
         <div class="wizard-header card border-0 shadow-sm mb-3">
             <div class="card-body d-flex flex-wrap gap-2 justify-content-between align-items-center">
                 <div>
@@ -29,7 +35,7 @@
                             <experience-step v-if="currentStep === 2" :items="form.experiences" :errors="errors" @update:items="updateExperiences"></experience-step>
                             <education-step v-if="currentStep === 3" :items="form.educations" :errors="errors" @update:items="updateEducations"></education-step>
                             <skills-step v-if="currentStep === 4" :items="form.skills" :errors="errors" @update:items="updateSkills"></skills-step>
-                            <review-step v-if="currentStep === 5" :cv="state.cv" :counts="counts" :status="form.review.status" :busy="isSaving" @update:status="updateReviewStatus" @copy-link="copyPublicLink" @download-pdf="downloadPdf" @finish="finishPublish"></review-step>
+                            <review-step v-if="currentStep === 5" :cv="state.cv" :counts="counts" :status="form.review.status" :public-url="state.cv.public_url || ''" :busy="isSaving" @save-draft="saveDraft" @publish="publishCv" @download-pdf="downloadPdf"></review-step>
                         </div>
 
                         <div class="wizard-footer mt-3 d-flex justify-content-between align-items-center">
@@ -55,7 +61,15 @@
                         <p class="text-muted small mb-2">Template: <strong>@{{ previewData.templateName || '-' }}</strong></p>
 
                         <div class="wizard-preview-wrap">
-                            <cv-live-preview :preview-data="previewData"></cv-live-preview>
+                            <div v-if="previewLoading" class="wizard-preview-loading">
+                                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                                <span>Rendering template...</span>
+                            </div>
+                            <iframe
+                                class="wizard-template-frame"
+                                :srcdoc="previewHtml"
+                                title="CV Template Preview"
+                            ></iframe>
                         </div>
 
                         <div class="toast-holder mt-2" aria-live="polite">
@@ -117,185 +131,29 @@
     border-radius: 12px;
     overflow: hidden;
     aspect-ratio: 210 / 297;
-    background: #fff;
+    background: #f1f5f9;
     position: relative;
 }
 
-.wizard-shell .wizard-live {
+.wizard-shell .wizard-template-frame {
     width: 100%;
     height: 100%;
-    background: #f3f4f6;
-    overflow: auto;
-    padding: 12px;
-}
-
-.wizard-shell .wizard-paper {
-    width: 100%;
-    min-height: 100%;
-    background: #fff;
-    padding: 18px;
-    box-shadow: 0 6px 18px rgba(15, 23, 42, .12);
-    border-top: 4px solid var(--wizard-accent, #475569);
-    color: #111827;
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-    font-size: 12px;
-    overflow-x: hidden;
-    box-sizing: border-box;
-}
-
-.wizard-shell .wizard-paper * {
-    box-sizing: border-box;
-}
-
-.wizard-shell .wizard-paper-header {
-    border-bottom: 1px solid #e5e7eb;
-    padding-bottom: 10px;
-}
-
-.wizard-shell .wizard-paper-name {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 800;
-    letter-spacing: -.02em;
-}
-
-.wizard-shell .wizard-paper-role {
-    margin-top: 2px;
-    color: #374151;
-    font-size: 12px;
-}
-
-.wizard-shell .wizard-paper-email {
-    display: inline-block;
-    margin-top: 5px;
-    color: #4b5563;
-    font-size: 11px;
-    text-decoration: none;
-}
-
-.wizard-shell .wizard-paper-summary {
-    margin-top: 8px;
-    color: #374151;
-    line-height: 1.45;
-}
-
-.wizard-shell .wizard-paper-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 14px;
-    margin-top: 12px;
-}
-
-.wizard-shell .wizard-paper-grid > * {
-    min-width: 0;
-}
-
-.wizard-shell .wizard-paper-section {
-    margin-top: 14px;
-    border-bottom: 1px solid #e5e7eb;
-    padding-bottom: 10px;
-}
-
-.wizard-shell .wizard-paper-right {
-    background: var(--wizard-side-bg, #f8fafc);
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 10px;
-    min-width: 0;
-}
-
-.wizard-shell .wizard-paper-section:first-child {
-    margin-top: 0;
-}
-
-.wizard-shell .wizard-paper-section:last-child {
-    border-bottom: 0;
-    padding-bottom: 0;
-}
-
-.wizard-shell .wizard-paper-title {
-    margin: 0 0 8px;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: .13em;
-    color: #6b7280;
-    font-weight: 700;
-}
-
-.wizard-shell .wizard-item {
-    margin-bottom: 8px;
-}
-
-.wizard-shell .wizard-item:last-child {
-    margin-bottom: 0;
-}
-
-.wizard-shell .wizard-item-head {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    align-items: baseline;
-    flex-wrap: wrap;
-}
-
-.wizard-shell .wizard-item-main {
-    margin: 0;
-    font-weight: 700;
-    font-size: 12px;
-}
-
-.wizard-shell .wizard-item-sub {
-    margin: 1px 0 0;
-    color: #4b5563;
-    font-size: 11px;
-}
-
-.wizard-shell .wizard-item-date {
-    color: #6b7280;
-    font-size: 10px;
-    white-space: normal;
-    text-align: right;
-}
-
-.wizard-shell .wizard-item-desc {
-    margin: 4px 0 0;
-    color: #374151;
-    line-height: 1.4;
-}
-
-.wizard-shell .wizard-paper-name,
-.wizard-shell .wizard-paper-role,
-.wizard-shell .wizard-paper-email,
-.wizard-shell .wizard-paper-summary,
-.wizard-shell .wizard-item-main,
-.wizard-shell .wizard-item-sub,
-.wizard-shell .wizard-item-desc,
-.wizard-shell .wizard-skill-tag,
-.wizard-shell .wizard-fallback {
-    overflow-wrap: anywhere;
-    word-break: break-word;
-}
-
-.wizard-shell .wizard-skill-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-.wizard-shell .wizard-skill-tag {
-    border: 1px solid #d1d5db;
-    border-radius: 999px;
-    padding: 3px 8px;
-    font-size: 10px;
-    color: #374151;
+    border: 0;
+    display: block;
     background: #fff;
 }
 
-.wizard-shell .wizard-fallback {
-    margin: 0;
-    color: #6b7280;
-    font-style: italic;
-    font-size: 11px;
+.wizard-shell .wizard-preview-loading {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: rgba(241, 245, 249, .88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    color: #334155;
+    font-size: .85rem;
 }
 @media (max-width: 900px) {
     .wizard-shell .wizard-steps {

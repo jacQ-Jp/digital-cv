@@ -4,7 +4,12 @@ namespace App\Http\Controllers\Cv;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cv;
+use App\Models\Education;
+use App\Models\Experience;
+use App\Models\Skill;
+use App\Models\Template;
 use App\Support\CvTemplateRenderer;
+use Illuminate\Support\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -283,6 +288,55 @@ class CvWizardController extends Controller
         ]);
     }
 
+    public function livePreview(Request $request, Cv $cv): JsonResponse
+    {
+        $this->authorizeCv($cv);
+
+        $payload = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'personal_name' => ['nullable', 'string', 'max:255'],
+            'personal_email' => ['nullable', 'string', 'max:255'],
+            'summary' => ['nullable', 'string'],
+            'photo_url' => ['nullable', 'string', 'max:2048'],
+            'experiences' => ['nullable', 'array'],
+            'experiences.*.id' => ['nullable'],
+            'experiences.*.position' => ['nullable', 'string', 'max:255'],
+            'experiences.*.company' => ['nullable', 'string', 'max:255'],
+            'experiences.*.start_date' => ['nullable', 'string', 'max:50'],
+            'experiences.*.end_date' => ['nullable', 'string', 'max:50'],
+            'experiences.*.description' => ['nullable', 'string'],
+            'educations' => ['nullable', 'array'],
+            'educations.*.id' => ['nullable'],
+            'educations.*.school' => ['nullable', 'string', 'max:255'],
+            'educations.*.degree' => ['nullable', 'string', 'max:255'],
+            'educations.*.year' => ['nullable', 'string', 'max:50'],
+            'skills' => ['nullable', 'array'],
+            'skills.*.id' => ['nullable'],
+            'skills.*.name' => ['nullable', 'string', 'max:255'],
+            'skills.*.level' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $cv->loadMissing(['user', 'template']);
+
+        $previewCv = $this->buildCvFromPayload($cv, $payload);
+
+        $renderer = app(CvTemplateRenderer::class);
+        $resolvedView = $renderer->resolveView($previewCv);
+        $resolvedSlug = str_replace('templates.', '', $resolvedView);
+
+        $html = view($resolvedView, [
+            'cv' => $previewCv,
+            'previewMode' => true,
+            'layout' => 'layouts.thumb',
+        ])->render();
+
+        return response()->json([
+            'html' => $html,
+            'template_slug' => $previewCv->template_slug,
+            'resolved_slug' => $resolvedSlug,
+        ]);
+    }
+
     public function downloadPdf(Cv $cv)
     {
         $this->authorizeCv($cv);
@@ -331,7 +385,9 @@ class CvWizardController extends Controller
                 'personal_email' => $cv->personal_email,
                 'photo_url' => $cv->photo_path ? Storage::disk('public')->url($cv->photo_path) : null,
                 'public_uuid' => $cv->public_uuid,
-                'public_url' => route('cvs.public', ['token' => $cv->public_uuid ?: $cv->id]),
+                'public_url' => $cv->status === 'published' && $cv->public_uuid
+                    ? route('cvs.public', ['token' => $cv->public_uuid])
+                    : null,
             ],
             'experiences' => $cv->experiences->map(fn ($item) => [
                 'id' => $item->id,
@@ -353,5 +409,83 @@ class CvWizardController extends Controller
                 'level' => $item->level,
             ])->values(),
         ];
+    }
+
+    private function buildCvFromPayload(Cv $cv, array $payload): Cv
+    {
+        $previewCv = $cv->replicate();
+        $previewCv->id = $cv->id;
+
+        $previewCv->forceFill([
+            'template_slug' => $cv->template_slug,
+            'title' => $payload['title'] ?? $cv->title,
+            'personal_name' => $payload['personal_name'] ?? $cv->personal_name,
+            'personal_email' => $payload['personal_email'] ?? $cv->personal_email,
+            'summary' => $payload['summary'] ?? $cv->summary,
+            'status' => $cv->status,
+            'photo_path' => $cv->photo_path,
+            'public_uuid' => $cv->public_uuid,
+            'user_id' => $cv->user_id,
+        ]);
+
+        if (array_key_exists('photo_url', $payload) && is_string($payload['photo_url']) && $payload['photo_url'] !== '') {
+            $previewCv->setAttribute('photo_preview_url', $payload['photo_url']);
+        }
+
+        $template = null;
+        if ($previewCv->template_slug) {
+            $template = Template::query()->where('slug', $previewCv->template_slug)->first();
+        }
+
+        $previewCv->setRelation('user', $cv->user);
+        $previewCv->setRelation('template', $template);
+        $previewCv->setRelation('experiences', $this->mapExperienceCollection($payload['experiences'] ?? []));
+        $previewCv->setRelation('educations', $this->mapEducationCollection($payload['educations'] ?? []));
+        $previewCv->setRelation('skills', $this->mapSkillCollection($payload['skills'] ?? []));
+
+        return $previewCv;
+    }
+
+    private function mapExperienceCollection(array $items): Collection
+    {
+        return collect($items)
+            ->map(function (array $item) {
+                return new Experience([
+                    'id' => is_numeric($item['id'] ?? null) ? (int) $item['id'] : null,
+                    'position' => $item['position'] ?? null,
+                    'company' => $item['company'] ?? null,
+                    'start_date' => $item['start_date'] ?? null,
+                    'end_date' => $item['end_date'] ?? null,
+                    'description' => $item['description'] ?? null,
+                ]);
+            })
+            ->values();
+    }
+
+    private function mapEducationCollection(array $items): Collection
+    {
+        return collect($items)
+            ->map(function (array $item) {
+                return new Education([
+                    'id' => is_numeric($item['id'] ?? null) ? (int) $item['id'] : null,
+                    'school' => $item['school'] ?? null,
+                    'degree' => $item['degree'] ?? null,
+                    'year' => $item['year'] ?? null,
+                ]);
+            })
+            ->values();
+    }
+
+    private function mapSkillCollection(array $items): Collection
+    {
+        return collect($items)
+            ->map(function (array $item) {
+                return new Skill([
+                    'id' => is_numeric($item['id'] ?? null) ? (int) $item['id'] : null,
+                    'name' => $item['name'] ?? null,
+                    'level' => $item['level'] ?? null,
+                ]);
+            })
+            ->values();
     }
 }

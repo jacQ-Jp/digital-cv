@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
     })->name('cvs.index');
 
     // Step 1: template selection
+    Route::get('/cv-builder/templates/preview/{slug}', [CvController::class, 'previewTemplate'])->name('cv-builder.templates.preview');
     Route::get('/cv-builder/templates', [CvController::class, 'selectTemplate'])->name('cv-builder.templates');
     Route::post('/cv-builder/templates', [CvController::class, 'saveTemplateSelection'])->name('cv-builder.templates.save');
 
@@ -53,9 +54,11 @@ Route::middleware('auth')->group(function () {
     Route::put('/cvs/{cv}/wizard/skills', [CvWizardController::class, 'saveSkills'])->name('cvs.wizard.skills');
     Route::put('/cvs/{cv}/wizard/review', [CvWizardController::class, 'saveReview'])->name('cvs.wizard.review');
     Route::get('/cvs/{cv}/wizard/preview', [CvWizardController::class, 'preview'])->name('cvs.wizard.preview');
+    Route::post('/cvs/{cv}/wizard/preview/live', [CvWizardController::class, 'livePreview'])->name('cvs.wizard.preview.live');
     Route::get('/cvs/{cv}/wizard/pdf', [CvWizardController::class, 'downloadPdf'])->name('cvs.wizard.pdf');
 
     Route::get('/cvs/{cv}/render', [CvController::class, 'render'])->name('cvs.render');
+    Route::get('/cvs/{cv}/thumbnail', [CvController::class, 'thumbnail'])->name('cvs.thumbnail');
 
     // Advanced actions
     Route::patch('/cvs/{cv}/toggle-publish', [CvController::class, 'togglePublish'])->name('cvs.toggle-publish');

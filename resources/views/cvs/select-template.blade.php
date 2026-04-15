@@ -40,12 +40,13 @@
         position: relative;
     }
 
-    .tpl-preview img {
+    .tpl-preview-frame {
         width: 100%;
         height: 100%;
-        object-fit: cover;
-        object-position: top center;
         display: block;
+        border: 0;
+        background: #f8fafc;
+        pointer-events: none;
     }
 
     .tpl-preview::after {
@@ -107,9 +108,14 @@
                 @foreach($templates as $tpl)
                     <div class="col-12 col-sm-6 col-xl-4">
                         <label class="h-100 js-template-card tpl-card" data-name="{{ strtolower($tpl->name) }}" data-slug="{{ strtolower($tpl->slug) }}">
-                            @php($thumb = $tpl->thumbnail ?: asset('images/templates/'.$tpl->slug.'.png'))
                             <div class="tpl-preview">
-                                <img src="{{ $thumb }}" alt="Preview {{ $tpl->name }}" onerror="this.style.display='none'; this.parentElement.classList.add('thumb-fallback');">
+                                <iframe
+                                    src="{{ route('cv-builder.templates.preview', ['slug' => $tpl->slug]) }}"
+                                    title="Preview {{ $tpl->name }}"
+                                    loading="lazy"
+                                    scrolling="no"
+                                    class="tpl-preview-frame"
+                                ></iframe>
                             </div>
                             <div class="tpl-meta">
                                 <div class="form-check d-flex align-items-start gap-2">
