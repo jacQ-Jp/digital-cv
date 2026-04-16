@@ -236,6 +236,10 @@
                 @foreach($cvs as $cv)
                     @php
                         $isPublished = $cv->status === 'published';
+                        $templateThumbnail = $cv->template?->thumbnail;
+                        $templateThumbnailUrl = ($templateThumbnail && \Illuminate\Support\Facades\Storage::disk('public')->exists($templateThumbnail))
+                            ? asset('storage/'.$templateThumbnail)
+                            : null;
                         $accents = [
                             ['border' => '#8b5cf6', 'bg' => '#f5f3ff', 'glow' => 'rgba(139,92,246,0.08)'],
                             ['border' => '#10b981', 'bg' => '#ecfdf5', 'glow' => 'rgba(16,185,129,0.08)'],
@@ -247,13 +251,18 @@
 
                     <div class="cv-card" style="--accent: {{ $accent['border'] }}; --accent-bg: {{ $accent['bg'] }}; --accent-glow: {{ $accent['glow'] }};">
                         <div class="cv-card-thumb">
-                            <iframe
-                                src="{{ route('cvs.thumbnail', $cv) }}"
-                                title="Thumbnail {{ $cv->title }}"
-                                loading="lazy"
-                                scrolling="no"
-                                class="cv-card-thumb-frame"
-                            ></iframe>
+                            <div class="cv-card-paper">
+                                @if($templateThumbnailUrl)
+                                    <img
+                                        src="{{ $templateThumbnailUrl }}"
+                                        alt="Thumbnail {{ $cv->title }}"
+                                        loading="lazy"
+                                        class="cv-card-thumb-frame"
+                                    >
+                                @else
+                                    <div class="cv-card-thumb-empty">No Thumbnail</div>
+                                @endif
+                            </div>
                             <div class="cv-card-badge-wrap">
                                 @if($isPublished)
                                     <span class="cv-status-badge cv-status-published">
@@ -963,19 +972,64 @@
     transform: translateY(-4px);
     border-top-color: var(--accent);
 }
-.cv-card-thumb { position: relative; height: 180px; background: var(--accent-bg); overflow: hidden; }
+.cv-card-thumb {
+    position: relative;
+    height: 250px;
+    padding: 12px;
+    background:
+        radial-gradient(circle at 18% 14%, rgba(255,255,255,0.78), rgba(255,255,255,0) 44%),
+        linear-gradient(145deg, #f8fafc 0%, var(--accent-bg) 100%);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.cv-card-paper {
+    position: relative;
+    height: 100%;
+    aspect-ratio: 210 / 297;
+    border-radius: 2px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    box-shadow: 0 14px 24px -16px rgba(15,23,42,0.55), 0 8px 18px -14px rgba(15,23,42,0.35);
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.cv-card:hover .cv-card-paper {
+    transform: translateY(-1px) rotate(-0.25deg);
+    box-shadow: 0 18px 30px -16px rgba(15,23,42,0.58), 0 10px 20px -14px rgba(15,23,42,0.38);
+}
+.cv-card-paper::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(125deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 34%);
+    pointer-events: none;
+    z-index: 2;
+}
 .cv-card-thumb-frame {
-    width: 794px;
-    height: 1123px;
-    border: 0;
+    width: 100%;
+    height: 100%;
     display: block;
+    object-fit: cover;
+    object-position: top center;
     background: #fff;
     pointer-events: none;
-    transform-origin: top left;
-    /* scale dihitung via JS */
 }
-.cv-card:hover .cv-card-thumb-frame { transform: scale(1.03); }
-.cv-card-thumb::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 60px; background: linear-gradient(to top, rgba(255,255,255,0.9), transparent); pointer-events: none; }
+.cv-card-thumb-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: linear-gradient(135deg, #f8fafc, #eef2ff);
+}
+.cv-card-thumb::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 56px; background: linear-gradient(to top, rgba(255,255,255,0.45), transparent); pointer-events: none; }
 .cv-card-badge-wrap { position: absolute; top: 12px; right: 12px; z-index: 2; }
 .cv-status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 999px; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.02em; backdrop-filter: blur(8px); }
 .cv-status-published { background: rgba(16,185,129,0.12); color: #059669; border: 1px solid rgba(16,185,129,0.25); }
@@ -1047,31 +1101,13 @@
 }
 @media (max-width: 639px) {
     .cv-page-title { font-size: 1.375rem; }
-    .cv-card-thumb { height: 140px; }
+    .cv-card-thumb { height: 210px; }
     .cv-grid { gap: 14px; }
     .cv-card-info { padding: 14px 16px 12px; }
 }
 </style>
 
 <script>
-    // ── Scale iframe thumbnail to fit container ──
-document.querySelectorAll('.cv-card-thumb-frame').forEach(function(iframe) {
-    function scaleFrame() {
-        var container = iframe.parentElement;
-        if (!container) return;
-        var cw = container.offsetWidth;
-        var ch = container.offsetHeight;
-        var scale = Math.min(cw / 794, ch / 1123);
-        iframe.style.transform = 'scale(' + scale + ')';
-    }
-
-    scaleFrame();
-
-    if (typeof ResizeObserver !== 'undefined') {
-        new ResizeObserver(scaleFrame).observe(iframe.parentElement);
-    }
-    window.addEventListener('resize', scaleFrame);
-});
 // ── Toggle sidebar ──
 function toggleSidebar() {
     var sidebar = document.getElementById('cvSidebar');

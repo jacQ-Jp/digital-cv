@@ -4,7 +4,11 @@
 <div class="container">
     <h1 class="h3 mb-3">Add Template</h1>
 
-    <form method="POST" action="{{ route('admin.templates.store') }}">
+    @if($errors->has('status'))
+        <div class="alert alert-danger">{{ $errors->first('status') }}</div>
+    @endif
+
+    <form method="POST" action="{{ route('admin.templates.store') }}" enctype="multipart/form-data">
         @csrf
 
         <div class="mb-3">
@@ -27,19 +31,34 @@
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Thumbnail URL/Path</label>
-            <input name="thumbnail" class="form-control" value="{{ old('thumbnail') }}">
+            <label class="form-label">Thumbnail (JPG/PNG)</label>
+            <input type="file" name="thumbnail" class="form-control" accept="image/jpeg,image/png" required>
+            <div class="form-text">Wajib upload gambar preview template (format: .jpg atau .png).</div>
             @error('thumbnail')<div class="text-danger small">{{ $message }}</div>@enderror
         </div>
 
-        <div class="form-check mb-2">
-            <input id="is_active" class="form-check-input" type="checkbox" name="is_active" value="1" @checked(old('is_active', true))>
-            <label for="is_active" class="form-check-label">Active</label>
-        </div>
+        <div class="mb-4">
+            <label class="form-label d-block">Status</label>
 
-        <div class="form-check mb-3">
-            <input id="is_default" class="form-check-input" type="checkbox" name="is_default" value="1" @checked(old('is_default'))>
-            <label for="is_default" class="form-check-label">Set as default (will force active)</label>
+            <input type="hidden" name="is_default" value="0">
+            <div class="form-check form-switch">
+                <input
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    id="is_default"
+                    name="is_default"
+                    value="1"
+                    @checked((string) old('is_default', '0') === '1')
+                    @disabled($hasDefault)
+                >
+                <label class="form-check-label" for="is_default">Default</label>
+            </div>
+            <div class="form-text">Hanya satu template yang boleh default. Jika dipilih default, template otomatis active.</div>
+            @if($hasDefault)
+                <div class="form-text text-warning">Saat ini sudah ada template default, jadi opsi ini dinonaktifkan.</div>
+            @endif
+            @error('is_default')<div class="text-danger small">{{ $message }}</div>@enderror
         </div>
 
         <div class="d-flex gap-2">

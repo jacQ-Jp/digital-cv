@@ -146,14 +146,18 @@ if (root) {
         previewHtml: buildFallbackPreviewHtml('Menyiapkan preview template.', initialTemplateSlug),
         previewResolvedSlug: initialTemplateSlug,
         previewLoading: false,
+        previewLoadingTimer: null,
+        previewHasRendered: false,
         previewRenderTimer: null,
         previewRequestId: 0,
+        saveRequestId: 0,
         form: {
           personal: {
             title: '',
             personal_name: '',
             personal_email: '',
             summary: '',
+            accent_color: '#7C3AED',
             photo_url: null,
             photoFile: null,
             remove_photo: false,
@@ -188,6 +192,7 @@ if (root) {
           personal_name: this.form.personal.personal_name,
           personal_email: this.form.personal.personal_email,
           summary: this.form.personal.summary,
+          accent_color: this.form.personal.accent_color || '#7C3AED',
           photo_url: this.form.personal.photo_url,
           experiences: this.form.experiences,
           educations: this.form.educations,
@@ -239,6 +244,7 @@ if (root) {
           personal_name: this.form.personal.personal_name || '',
           personal_email: this.form.personal.personal_email || '',
           summary: this.form.personal.summary || '',
+          accent_color: this.form.personal.accent_color || '#7C3AED',
           photo_url: this.form.personal.photo_url || null,
           experiences: this.form.experiences,
           educations: this.form.educations,
@@ -249,11 +255,18 @@ if (root) {
         clearTimeout(this.previewRenderTimer);
         this.previewRenderTimer = setTimeout(() => {
           this.renderTemplatePreview();
-        }, 120);
+        }, 220);
       },
       async renderTemplatePreview() {
         const requestId = ++this.previewRequestId;
-        this.previewLoading = true;
+
+        clearTimeout(this.previewLoadingTimer);
+        const spinnerDelay = this.previewHasRendered ? 260 : 0;
+        this.previewLoadingTimer = setTimeout(() => {
+          if (requestId === this.previewRequestId) {
+            this.previewLoading = true;
+          }
+        }, spinnerDelay);
 
         try {
           const response = await httpClient.post(`${baseUrl}/preview/live`, this.buildPreviewPayload());
@@ -262,12 +275,18 @@ if (root) {
             return;
           }
 
-          this.previewHtml = response?.data?.html || '';
+          const nextHtml = response?.data?.html || '';
+          if (nextHtml && nextHtml !== this.previewHtml) {
+            this.previewHtml = nextHtml;
+          }
+
           this.previewResolvedSlug = response?.data?.resolved_slug || response?.data?.template_slug || this.previewData.templateSlug || 'default';
 
           if (!this.previewHtml) {
             this.previewHtml = buildFallbackPreviewHtml('Preview kosong.', this.previewResolvedSlug);
           }
+
+          this.previewHasRendered = true;
         } catch {
           if (requestId !== this.previewRequestId) {
             return;
@@ -277,11 +296,14 @@ if (root) {
           this.previewHtml = buildFallbackPreviewHtml('Gagal memuat preview template.', this.previewResolvedSlug);
         } finally {
           if (requestId === this.previewRequestId) {
+            clearTimeout(this.previewLoadingTimer);
             this.previewLoading = false;
           }
         }
       },
-      applyState(payload) {
+      applyState(payload, options = {}) {
+        const triggerPreviewRender = options.triggerPreviewRender !== false;
+        const preservePersonal = options.preservePersonal === true;
         const cvPayload = payload?.cv || {};
 
         this.state.cv = {
@@ -289,27 +311,32 @@ if (root) {
           ...cvPayload,
         };
 
-        if (this.photoObjectUrl) {
+        if (this.photoObjectUrl && !preservePersonal) {
           URL.revokeObjectURL(this.photoObjectUrl);
           this.photoObjectUrl = null;
         }
 
-        this.form.personal = {
-          title: cvPayload.title || '',
-          personal_name: cvPayload.personal_name || '',
-          personal_email: cvPayload.personal_email || '',
-          summary: cvPayload.summary || '',
-          photo_url: cvPayload.photo_url || null,
-          photoFile: null,
-          remove_photo: false,
-        };
+        if (!preservePersonal) {
+          this.form.personal = {
+            title: cvPayload.title || '',
+            personal_name: cvPayload.personal_name || '',
+            personal_email: cvPayload.personal_email || '',
+            summary: cvPayload.summary || '',
+            accent_color: cvPayload.accent_color || '#7C3AED',
+            photo_url: cvPayload.photo_url || null,
+            photoFile: null,
+            remove_photo: false,
+          };
+        }
 
         this.form.experiences = Array.isArray(payload?.experiences) ? payload.experiences : [];
         this.form.educations = Array.isArray(payload?.educations) ? payload.educations : [];
         this.form.skills = Array.isArray(payload?.skills) ? payload.skills : [];
         this.form.review.status = cvPayload.status || 'draft';
 
-        this.schedulePreviewRender();
+        if (triggerPreviewRender) {
+          this.schedulePreviewRender();
+        }
       },
       stepClass(stepNumber) {
         if (stepNumber < this.currentStep) return 'is-done';
@@ -377,10 +404,16 @@ if (root) {
 
         clearTimeout(this.autosaveTimer);
         this.autosaveTimer = setTimeout(() => {
+          if (this.isSaving) {
+            this.scheduleAutosave();
+            return;
+          }
+
           this.saveStep(this.currentStep, true);
         }, 700);
       },
       async saveStep(step, silent = false) {
+        const requestId = ++this.saveRequestId;
         this.isSaving = true;
         this.errors = {};
 
@@ -393,6 +426,7 @@ if (root) {
             fd.append('personal_name', this.form.personal.personal_name || '');
             fd.append('personal_email', this.form.personal.personal_email || '');
             fd.append('summary', this.form.personal.summary || '');
+            fd.append('accent_color', this.form.personal.accent_color || '#7C3AED');
             fd.append('remove_photo', this.form.personal.remove_photo ? '1' : '0');
             if (this.form.personal.photoFile) {
               fd.append('photo', this.form.personal.photoFile);
@@ -427,13 +461,18 @@ if (root) {
             });
           }
 
-          if (response?.data) {
-            this.applyState(response.data);
+          if (response?.data && requestId === this.saveRequestId) {
+            this.applyState(response.data, {
+              triggerPreviewRender: false,
+              preservePersonal: step === 1,
+            });
           }
 
-          this.lastSavedAt = new Date().toLocaleTimeString();
+          if (requestId === this.saveRequestId) {
+            this.lastSavedAt = new Date().toLocaleTimeString();
+          }
 
-          if (!silent) {
+          if (!silent && requestId === this.saveRequestId) {
             this.showToast('Saved');
           }
 
@@ -456,7 +495,9 @@ if (root) {
 
           return false;
         } finally {
-          this.isSaving = false;
+          if (requestId === this.saveRequestId) {
+            this.isSaving = false;
+          }
         }
       },
       updatePersonal(payload) {

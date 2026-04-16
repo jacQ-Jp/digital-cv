@@ -19,9 +19,9 @@
             </div>
         </div>
 
-        <div class="row g-3">
+        <div class="row g-3 wizard-main-row">
             <div class="col-12 col-xl-6">
-                <div class="card border-0 shadow-sm">
+                <div class="card border-0 shadow-sm wizard-panel wizard-editor-panel">
                     <div class="card-body">
                         <nav class="wizard-steps mb-3" aria-label="CV Builder Steps">
                             <button type="button" class="wizard-step" v-for="(step, idx) in steps" :key="step.key" :class="stepClass(idx + 1)" @click="goToStep(idx + 1)">
@@ -51,7 +51,7 @@
             </div>
 
             <div class="col-12 col-xl-6">
-                <div class="card border-0 shadow-sm position-sticky" style="top: 1rem;">
+                <div class="card border-0 shadow-sm position-sticky wizard-panel wizard-preview-panel" style="top: 1rem;">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h2 class="h6 mb-0">Live Preview</h2>
@@ -60,20 +60,22 @@
 
                         <p class="text-muted small mb-2">Template: <strong>@{{ previewData.templateName || '-' }}</strong></p>
 
-                        <div class="wizard-preview-wrap">
-                            <div v-if="previewLoading" class="wizard-preview-loading">
-                                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
-                                <span>Rendering template...</span>
+                        <div class="wizard-preview-scroll">
+                            <div class="wizard-preview-wrap">
+                                <div v-if="previewLoading" class="wizard-preview-loading">
+                                    <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                                    <span>Rendering template...</span>
+                                </div>
+                                <iframe
+                                    class="wizard-template-frame"
+                                    :srcdoc="previewHtml"
+                                    title="CV Template Preview"
+                                ></iframe>
                             </div>
-                            <iframe
-                                class="wizard-template-frame"
-                                :srcdoc="previewHtml"
-                                title="CV Template Preview"
-                            ></iframe>
-                        </div>
 
-                        <div class="toast-holder mt-2" aria-live="polite">
-                            <div v-if="toast" class="alert alert-success py-2 mb-0 small">@{{ toast }}</div>
+                            <div class="toast-holder mt-2" aria-live="polite">
+                                <div v-if="toast" class="alert alert-success py-2 mb-0 small">@{{ toast }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -126,6 +128,9 @@
     border-color: #86efac;
     background: #f0fdf4;
 }
+.wizard-shell .wizard-body {
+    min-height: 0;
+}
 .wizard-shell .wizard-preview-wrap {
     border: 1px solid #e2e8f0;
     border-radius: 12px;
@@ -154,6 +159,39 @@
     gap: .5rem;
     color: #334155;
     font-size: .85rem;
+}
+@media (min-width: 1200px) {
+    .wizard-shell .wizard-main-row {
+        align-items: stretch;
+    }
+
+    .wizard-shell .wizard-panel {
+        height: calc(100vh - 9.5rem);
+    }
+
+    .wizard-shell .wizard-editor-panel .card-body,
+    .wizard-shell .wizard-preview-panel .card-body {
+        height: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .wizard-shell .wizard-editor-panel .wizard-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: .25rem;
+    }
+
+    .wizard-shell .wizard-preview-scroll {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: .25rem;
+    }
 }
 @media (max-width: 900px) {
     .wizard-shell .wizard-steps {

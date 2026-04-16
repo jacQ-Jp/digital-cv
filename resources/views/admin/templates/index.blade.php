@@ -11,10 +11,15 @@
         <div class="alert alert-success">{{ session('status') }}</div>
     @endif
 
+    @if($errors->any())
+        <div class="alert alert-danger">{{ $errors->first() }}</div>
+    @endif
+
     <div class="table-responsive">
         <table class="table table-striped align-middle">
             <thead>
                 <tr>
+                    <th>Thumbnail</th>
                     <th>Name</th>
                     <th>Slug</th>
                     <th>Used</th>
@@ -32,8 +37,17 @@
 
                         $canDelete = ! $isDefault && ! $isUsed;
                         $canToggleActive = ! $isDefault && ! ($isActive && $isUsed);
+                        // Catatan: Kita hapus logika $canSetDefault untuk UI agar tombol Set Default muncul jika belum default
+                        $canSetDefault = ! $isDefault;
                     @endphp
                     <tr>
+                        <td style="width:140px;">
+                            @if($tpl->thumbnail)
+                                <img src="{{ asset('storage/'.$tpl->thumbnail) }}" alt="Thumbnail {{ $tpl->name }}" style="width:120px;height:auto;max-height:90px;object-fit:cover;border:1px solid #e2e8f0;border-radius:8px;background:#fff;">
+                            @else
+                                <span class="small text-muted">No thumbnail</span>
+                            @endif
+                        </td>
                         <td>
                             <div class="fw-semibold">{{ $tpl->name }}</div>
                             <div class="small text-muted">{{ $tpl->description }}</div>
@@ -59,25 +73,34 @@
                             @endif
                         </td>
                         <td class="text-end">
-                            <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.templates.edit', $tpl) }}">Edit</a>
+                            <!-- Wrapper untuk tombol agar rapi berdampingan -->
+                            <div class="d-flex justify-content-end align-items-center gap-1 flex-wrap">
+                                
+                                <!-- Button Edit -->
+                                <a class="btn btn-sm btn-primary" href="{{ route('admin.templates.edit', $tpl) }}">Edit</a>
 
-                            <form class="d-inline" method="POST" action="{{ route('admin.templates.toggle-active', $tpl) }}">
-                                @csrf
-                                @method('PATCH')
-                                <button class="btn btn-sm btn-outline-secondary" type="submit" @disabled(!$canToggleActive)
-                                    title="{{ !$canToggleActive ? 'Tidak bisa dinonaktifkan jika sudah dipakai / default tidak bisa dinonaktifkan' : '' }}">
-                                    {{ $isActive ? 'Deactivate' : 'Activate' }}
-                                </button>
-                            </form>
+                                <!-- Toggle Button (Custom CSS) -->
+                                <form class="d-inline m-0 p-0" method="POST" action="{{ route('admin.templates.toggle-active', $tpl) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button class="btn-custom-toggle {{ $isActive ? 'active' : 'inactive' }}" type="submit" @disabled(!$canToggleActive)
+                                        title="{{ !$canToggleActive ? 'Tidak bisa diubah karena dipakai / Default' : 'Toggle Status' }}">
+                                        <span class="toggle-track">
+                                            <span class="toggle-circle"></span>
+                                        </span>
+                                    </button>
+                                </form>
 
-                            <form class="d-inline" method="POST" action="{{ route('admin.templates.destroy', $tpl) }}" onsubmit="return confirm('Delete this template?')">
-                                @csrf
-                                @method('DELETE')
-                                <button class="btn btn-sm btn-outline-danger" type="submit" @disabled(!$canDelete)
-                                    title="{{ !$canDelete ? ($isDefault ? 'Default template tidak bisa dihapus' : 'Template sudah dipakai, tidak bisa dihapus') : '' }}">
-                                    Delete
-                                </button>
-                            </form>
+                                <!-- Button Delete -->
+                                <form class="d-inline m-0 p-0" method="POST" action="{{ route('admin.templates.destroy', $tpl) }}" onsubmit="return confirm('Hapus template ini?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn btn-sm btn-outline-danger" type="submit" @disabled(!$canDelete)
+                                        title="{{ !$canDelete ? 'Default / Tidak bisa dihapus' : 'Hapus' }}">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 @endforeach
@@ -85,4 +108,69 @@
         </table>
     </div>
 </div>
+
+<!-- CUSTOM CSS FOR TOGGLE BUTTON -->
+<style>
+    /* Container Tombol Toggle */
+    .btn-custom-toggle {
+        position: relative;
+        display: inline-block;
+        width: 52px;  /* Lebar track */
+        height: 28px; /* Tinggi track */
+        background-color: #dee2e6; /* Abu-abu terang (OFF) */
+        border: none;
+        border-radius: 999px; /* Bentuk pill */
+        cursor: pointer;
+        margin: 0;
+        padding: 0;
+        outline: none;
+        transition: background-color 0.3s ease;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    /* Lingkaran Bulat */
+    .toggle-circle {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 24px;
+        height: 24px;
+        background-color: #fff;
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+
+    /* --- STATE: ACTIVE (ON) --- */
+    .btn-custom-toggle.active {
+        background-color: #198754; /* Hijau Bootstrap Success */
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+    .btn-custom-toggle.active .toggle-circle {
+        transform: translateX(24px); /* Geser ke kanan */
+    }
+
+    /* --- STATE: INACTIVE (OFF) --- */
+    .btn-custom-toggle.inactive {
+        background-color: #dee2e6; /* Abu-abu */
+    }
+
+    .btn-custom-toggle.inactive .toggle-circle {
+        transform: translateX(0); /* Tetap di kiri */
+    }
+
+    /* Hover Effect */
+    .btn-custom-toggle:not(:disabled):hover {
+        filter: brightness(0.95);
+    }
+    
+    /* Disabled State */
+    .btn-custom-toggle:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        filter: grayscale(1);
+    }
+</style>
 @endsection

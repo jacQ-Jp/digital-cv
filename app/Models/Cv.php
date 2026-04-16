@@ -22,6 +22,7 @@ class Cv extends Model
         'personal_linkedin',
         'personal_website',
         'photo_path',
+        'accent_color',
         'template_slug',
         'status',
         'public_uuid',

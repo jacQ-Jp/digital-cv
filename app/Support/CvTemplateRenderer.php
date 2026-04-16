@@ -18,6 +18,10 @@ class CvTemplateRenderer
             }
         }
 
+        if (view()->exists('cv.templates.default')) {
+            return 'cv.templates.default';
+        }
+
         if (view()->exists('templates.default')) {
             return 'templates.default';
         }
@@ -63,8 +67,14 @@ class CvTemplateRenderer
             return null;
         }
 
-        $viewName = "templates.$slug";
+        $viewName = "cv.templates.$slug";
 
-        return view()->exists($viewName) ? $viewName : null;
+        if (view()->exists($viewName)) {
+            return $viewName;
+        }
+
+        $legacyViewName = "templates.$slug";
+
+        return view()->exists($legacyViewName) ? $legacyViewName : null;
     }
 }

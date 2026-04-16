@@ -41,7 +41,6 @@ Route::middleware('auth')->group(function () {
     })->name('cvs.index');
 
     // Step 1: template selection
-    Route::get('/cv-builder/templates/preview/{slug}', [CvController::class, 'previewTemplate'])->name('cv-builder.templates.preview');
     Route::get('/cv-builder/templates', [CvController::class, 'selectTemplate'])->name('cv-builder.templates');
     Route::post('/cv-builder/templates', [CvController::class, 'saveTemplateSelection'])->name('cv-builder.templates.save');
 
@@ -58,7 +57,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/cvs/{cv}/wizard/pdf', [CvWizardController::class, 'downloadPdf'])->name('cvs.wizard.pdf');
 
     Route::get('/cvs/{cv}/render', [CvController::class, 'render'])->name('cvs.render');
-    Route::get('/cvs/{cv}/thumbnail', [CvController::class, 'thumbnail'])->name('cvs.thumbnail');
 
     // Advanced actions
     Route::patch('/cvs/{cv}/toggle-publish', [CvController::class, 'togglePublish'])->name('cvs.toggle-publish');
@@ -76,6 +74,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     Route::patch('templates/{template}/toggle-active', [\App\Http\Controllers\Admin\TemplateController::class, 'toggleActive'])
         ->name('templates.toggle-active');
+
+    Route::patch('templates/{template}/set-default', [\App\Http\Controllers\Admin\TemplateController::class, 'setDefault'])
+        ->name('templates.set-default');
 
     Route::resource('templates', \App\Http\Controllers\Admin\TemplateController::class);
 });

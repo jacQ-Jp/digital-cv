@@ -4,9 +4,6 @@ namespace App\Http\Controllers\Cv;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cv;
-use App\Models\Education;
-use App\Models\Experience;
-use App\Models\Skill;
 use App\Models\Template;
 use App\Support\CvTemplateRenderer;
 use Illuminate\Support\Collection;
@@ -21,6 +18,16 @@ use Throwable;
 
 class CvWizardController extends Controller
 {
+    private const ACCENT_COLORS = [
+        '#7C3AED',
+        '#0EA5A4',
+        '#3B82F6',
+        '#EA580C',
+        '#334155',
+        '#166534',
+        '#BE123C',
+    ];
+
     public function show(Cv $cv): View
     {
         $this->authorizeCv($cv);
@@ -55,6 +62,7 @@ class CvWizardController extends Controller
             'personal_name' => ['nullable', 'string', 'max:255'],
             'personal_email' => ['nullable', 'email', 'max:255'],
             'summary' => ['nullable', 'string'],
+            'accent_color' => ['nullable', 'string', 'max:7'],
             'remove_photo' => ['nullable', 'boolean'],
             'photo' => ['nullable', 'image', 'max:2048'],
         ]);
@@ -77,6 +85,7 @@ class CvWizardController extends Controller
             'personal_name' => $data['personal_name'] ?? $cv->personal_name,
             'personal_email' => $data['personal_email'] ?? $cv->personal_email,
             'summary' => $data['summary'] ?? null,
+            'accent_color' => $this->normalizeAccentColor($data['accent_color'] ?? $cv->accent_color),
             'status' => 'draft',
         ])->save();
 
@@ -297,6 +306,7 @@ class CvWizardController extends Controller
             'personal_name' => ['nullable', 'string', 'max:255'],
             'personal_email' => ['nullable', 'string', 'max:255'],
             'summary' => ['nullable', 'string'],
+            'accent_color' => ['nullable', 'string', 'max:7'],
             'photo_url' => ['nullable', 'string', 'max:2048'],
             'experiences' => ['nullable', 'array'],
             'experiences.*.id' => ['nullable'],
@@ -322,7 +332,7 @@ class CvWizardController extends Controller
 
         $renderer = app(CvTemplateRenderer::class);
         $resolvedView = $renderer->resolveView($previewCv);
-        $resolvedSlug = str_replace('templates.', '', $resolvedView);
+        $resolvedSlug = preg_replace('/^(cv\.)?templates\./', '', $resolvedView) ?: 'default';
 
         $html = view($resolvedView, [
             'cv' => $previewCv,
@@ -383,6 +393,7 @@ class CvWizardController extends Controller
                 'status' => $cv->status,
                 'personal_name' => $cv->personal_name,
                 'personal_email' => $cv->personal_email,
+                'accent_color' => $this->normalizeAccentColor($cv->accent_color),
                 'photo_url' => $cv->photo_path ? Storage::disk('public')->url($cv->photo_path) : null,
                 'public_uuid' => $cv->public_uuid,
                 'public_url' => $cv->status === 'published' && $cv->public_uuid
@@ -422,11 +433,42 @@ class CvWizardController extends Controller
             'personal_name' => $payload['personal_name'] ?? $cv->personal_name,
             'personal_email' => $payload['personal_email'] ?? $cv->personal_email,
             'summary' => $payload['summary'] ?? $cv->summary,
+            'accent_color' => $this->normalizeAccentColor($payload['accent_color'] ?? $cv->accent_color),
             'status' => $cv->status,
             'photo_path' => $cv->photo_path,
             'public_uuid' => $cv->public_uuid,
             'user_id' => $cv->user_id,
         ]);
+
+        $placeholderFlags = [];
+
+        $previewCv->title = $this->valueOrPlaceholder(
+            $previewCv->title,
+            'Your Profession',
+            $placeholderFlags,
+            'title'
+        );
+
+        $previewCv->personal_name = $this->valueOrPlaceholder(
+            $previewCv->personal_name,
+            'Your Name',
+            $placeholderFlags,
+            'personal_name'
+        );
+
+        $previewCv->personal_email = $this->valueOrPlaceholder(
+            $previewCv->personal_email,
+            'your@email.com',
+            $placeholderFlags,
+            'personal_email'
+        );
+
+        $previewCv->summary = $this->valueOrPlaceholder(
+            $previewCv->summary,
+            'Write a short professional summary about yourself...',
+            $placeholderFlags,
+            'summary'
+        );
 
         if (array_key_exists('photo_url', $payload) && is_string($payload['photo_url']) && $payload['photo_url'] !== '') {
             $previewCv->setAttribute('photo_preview_url', $payload['photo_url']);
@@ -437,11 +479,16 @@ class CvWizardController extends Controller
             $template = Template::query()->where('slug', $previewCv->template_slug)->first();
         }
 
+        $experiences = $this->applyExperiencePlaceholders($this->mapExperienceCollection($payload['experiences'] ?? []));
+        $educations = $this->applyEducationPlaceholders($this->mapEducationCollection($payload['educations'] ?? []));
+        $skills = $this->applySkillPlaceholders($this->mapSkillCollection($payload['skills'] ?? []));
+
+        $previewCv->setAttribute('preview_placeholder_flags', $placeholderFlags);
         $previewCv->setRelation('user', $cv->user);
         $previewCv->setRelation('template', $template);
-        $previewCv->setRelation('experiences', $this->mapExperienceCollection($payload['experiences'] ?? []));
-        $previewCv->setRelation('educations', $this->mapEducationCollection($payload['educations'] ?? []));
-        $previewCv->setRelation('skills', $this->mapSkillCollection($payload['skills'] ?? []));
+        $previewCv->setRelation('experiences', $experiences);
+        $previewCv->setRelation('educations', $educations);
+        $previewCv->setRelation('skills', $skills);
 
         return $previewCv;
     }
@@ -450,14 +497,15 @@ class CvWizardController extends Controller
     {
         return collect($items)
             ->map(function (array $item) {
-                return new Experience([
+                return (object) [
                     'id' => is_numeric($item['id'] ?? null) ? (int) $item['id'] : null,
-                    'position' => $item['position'] ?? null,
-                    'company' => $item['company'] ?? null,
-                    'start_date' => $item['start_date'] ?? null,
-                    'end_date' => $item['end_date'] ?? null,
-                    'description' => $item['description'] ?? null,
-                ]);
+                    'position' => $this->cleanString($item['position'] ?? null),
+                    'company' => $this->cleanString($item['company'] ?? null),
+                    'start_date' => $this->cleanString($item['start_date'] ?? null),
+                    'end_date' => $this->cleanString($item['end_date'] ?? null),
+                    'description' => $this->cleanString($item['description'] ?? null),
+                    '_placeholder' => [],
+                ];
             })
             ->values();
     }
@@ -466,12 +514,13 @@ class CvWizardController extends Controller
     {
         return collect($items)
             ->map(function (array $item) {
-                return new Education([
+                return (object) [
                     'id' => is_numeric($item['id'] ?? null) ? (int) $item['id'] : null,
-                    'school' => $item['school'] ?? null,
-                    'degree' => $item['degree'] ?? null,
-                    'year' => $item['year'] ?? null,
-                ]);
+                    'school' => $this->cleanString($item['school'] ?? null),
+                    'degree' => $this->cleanString($item['degree'] ?? null),
+                    'year' => $this->cleanString($item['year'] ?? null),
+                    '_placeholder' => [],
+                ];
             })
             ->values();
     }
@@ -480,12 +529,166 @@ class CvWizardController extends Controller
     {
         return collect($items)
             ->map(function (array $item) {
-                return new Skill([
+                return (object) [
                     'id' => is_numeric($item['id'] ?? null) ? (int) $item['id'] : null,
-                    'name' => $item['name'] ?? null,
-                    'level' => $item['level'] ?? null,
-                ]);
+                    'name' => $this->cleanString($item['name'] ?? null),
+                    'level' => $this->cleanString($item['level'] ?? null),
+                    '_placeholder' => [],
+                ];
             })
             ->values();
+    }
+
+    private function applyExperiencePlaceholders(Collection $items): Collection
+    {
+        $presets = [
+            [
+                'position' => 'Your Role',
+                'company' => 'Company Name',
+                'start_date' => '2022',
+                'end_date' => 'Present',
+                'description' => 'Describe key responsibilities and measurable achievements in this role.',
+            ],
+            [
+                'position' => 'Previous Role',
+                'company' => 'Previous Company',
+                'start_date' => '2020',
+                'end_date' => '2022',
+                'description' => 'Highlight projects or impact that show your professional growth.',
+            ],
+        ];
+
+        $targetCount = max($items->count(), 1);
+        $result = collect();
+
+        for ($index = 0; $index < $targetCount; $index++) {
+            $row = $items->get($index) ?: (object) [
+                'id' => null,
+                'position' => null,
+                'company' => null,
+                'start_date' => null,
+                'end_date' => null,
+                'description' => null,
+                '_placeholder' => [],
+            ];
+
+            $preset = $presets[min($index, count($presets) - 1)];
+            $placeholder = [];
+
+            $result->push((object) [
+                'id' => $row->id,
+                'position' => $this->valueOrPlaceholder($row->position ?? null, $preset['position'], $placeholder, 'position'),
+                'company' => $this->valueOrPlaceholder($row->company ?? null, $preset['company'], $placeholder, 'company'),
+                'start_date' => $this->valueOrPlaceholder($row->start_date ?? null, $preset['start_date'], $placeholder, 'start_date'),
+                'end_date' => $this->valueOrPlaceholder($row->end_date ?? null, $preset['end_date'], $placeholder, 'end_date'),
+                'description' => $this->valueOrPlaceholder($row->description ?? null, $preset['description'], $placeholder, 'description'),
+                '_placeholder' => $placeholder,
+            ]);
+        }
+
+        return $result;
+    }
+
+    private function applyEducationPlaceholders(Collection $items): Collection
+    {
+        $targetCount = max($items->count(), 1);
+        $result = collect();
+
+        for ($index = 0; $index < $targetCount; $index++) {
+            $row = $items->get($index) ?: (object) [
+                'id' => null,
+                'school' => null,
+                'degree' => null,
+                'year' => null,
+                '_placeholder' => [],
+            ];
+
+            $placeholder = [];
+
+            $result->push((object) [
+                'id' => $row->id,
+                'school' => $this->valueOrPlaceholder($row->school ?? null, 'School Name', $placeholder, 'school'),
+                'degree' => $this->valueOrPlaceholder($row->degree ?? null, 'Degree', $placeholder, 'degree'),
+                'year' => $this->valueOrPlaceholder($row->year ?? null, 'Year', $placeholder, 'year'),
+                '_placeholder' => $placeholder,
+            ]);
+        }
+
+        return $result;
+    }
+
+    private function applySkillPlaceholders(Collection $items): Collection
+    {
+        $targetCount = max($items->count(), 4);
+        $result = collect();
+
+        for ($index = 0; $index < $targetCount; $index++) {
+            $row = $items->get($index) ?: (object) [
+                'id' => null,
+                'name' => null,
+                'level' => null,
+                '_placeholder' => [],
+            ];
+
+            $placeholder = [];
+            $skillPlaceholder = 'Skill '.($index + 1);
+
+            $result->push((object) [
+                'id' => $row->id,
+                'name' => $this->valueOrPlaceholder($row->name ?? null, $skillPlaceholder, $placeholder, 'name'),
+                'level' => $row->level,
+                '_placeholder' => $placeholder,
+            ]);
+        }
+
+        return $result;
+    }
+
+    private function normalizeAccentColor(mixed $value): string
+    {
+        if (! is_string($value) && ! is_numeric($value)) {
+            return $this->defaultAccentColor();
+        }
+
+        $normalized = strtoupper(trim((string) $value));
+
+        if (! preg_match('/^#[0-9A-F]{6}$/', $normalized)) {
+            return $this->defaultAccentColor();
+        }
+
+        if (! in_array($normalized, self::ACCENT_COLORS, true)) {
+            return $this->defaultAccentColor();
+        }
+
+        return $normalized;
+    }
+
+    private function defaultAccentColor(): string
+    {
+        return self::ACCENT_COLORS[0];
+    }
+
+    private function cleanString(mixed $value): ?string
+    {
+        if (! is_string($value) && ! is_numeric($value)) {
+            return null;
+        }
+
+        $normalized = trim((string) $value);
+
+        return $normalized === '' ? null : $normalized;
+    }
+
+    private function valueOrPlaceholder(mixed $value, string $placeholder, array &$placeholderFlags, string $key): string
+    {
+        $normalized = $this->cleanString($value);
+
+        if ($normalized !== null) {
+            return $normalized;
+        }
+
+        $placeholderFlags[$key] = true;
+
+        return $placeholder;
     }
 }

@@ -2,51 +2,167 @@
 
 @section('content')
 <style>
+    .tpl-shell {
+        --tpl-bg: #f3f6fb;
+        --tpl-panel: #ffffff;
+        --tpl-border: #dbe4f0;
+        --tpl-text: #0f172a;
+        --tpl-muted: #64748b;
+        --tpl-accent: #2563eb;
+        --tpl-accent-soft: #dbeafe;
+        background: radial-gradient(1200px 420px at 50% -180px, #dbeafe 0%, transparent 70%), var(--tpl-bg);
+        min-height: calc(100vh - 88px);
+        padding: 24px 12px 36px;
+    }
+
     .tpl-page {
-        max-width: 1240px;
+        max-width: 1320px;
         margin: 0 auto;
     }
 
+    .tpl-headline {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .tpl-headline h1 {
+        margin: 0;
+        font-size: clamp(1.55rem, 2.2vw, 2.1rem);
+        font-weight: 800;
+        color: var(--tpl-text);
+        letter-spacing: -0.02em;
+    }
+
+    .tpl-headline p {
+        margin: 8px 0 0;
+        color: var(--tpl-muted);
+        font-size: 1rem;
+    }
+
+    .tpl-workbench {
+        display: grid;
+        grid-template-columns: 270px 1fr;
+        gap: 16px;
+    }
+
+    .tpl-panel {
+        border: 1px solid var(--tpl-border);
+        border-radius: 16px;
+        background: var(--tpl-panel);
+        box-shadow: 0 10px 25px -20px rgba(15, 23, 42, 0.45);
+    }
+
+    .tpl-filter-panel {
+        padding: 16px;
+        position: sticky;
+        top: 1rem;
+        align-self: start;
+    }
+
+    .tpl-filter-panel h2 {
+        margin: 0 0 10px;
+        font-size: 1.06rem;
+        color: var(--tpl-text);
+        font-weight: 750;
+    }
+
     .tpl-search {
-        max-width: 560px;
+        max-width: none;
+    }
+
+    .tpl-filter-hint {
+        margin-top: 10px;
+        font-size: 0.82rem;
+        color: var(--tpl-muted);
+        line-height: 1.4;
+    }
+
+    .tpl-content-panel {
+        padding: 16px;
+    }
+
+    .tpl-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
     }
 
     .tpl-card {
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--tpl-border);
         border-radius: 14px;
         overflow: hidden;
         background: #fff;
-        transition: all .22s ease;
+        transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
         cursor: pointer;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
     }
 
     .tpl-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 26px -14px rgba(15, 23, 42, 0.35);
-        border-color: #cbd5e1;
+        box-shadow: 0 16px 30px -20px rgba(15, 23, 42, 0.42);
+        border-color: #bfdbfe;
     }
 
     .tpl-card.is-selected {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12), 0 10px 26px -14px rgba(15, 23, 42, 0.35);
+        border-color: var(--tpl-accent);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16), 0 16px 30px -20px rgba(15, 23, 42, 0.42);
     }
 
     .tpl-preview {
         aspect-ratio: 210 / 297;
-        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-        border-bottom: 1px solid #e2e8f0;
+        padding: 10px;
+        background:
+            radial-gradient(circle at 14% 12%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 42%),
+            linear-gradient(160deg, #f8fafc 0%, #edf2ff 100%);
+        border-bottom: 1px solid var(--tpl-border);
         overflow: hidden;
         position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .tpl-preview-frame {
+    .tpl-paper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 2px;
+        border: 1px solid #dbe4f0;
+        background: #fff;
+        box-shadow: 0 14px 22px -14px rgba(15, 23, 42, 0.45), 0 8px 16px -14px rgba(15, 23, 42, 0.3);
+        overflow: hidden;
+    }
+
+    .tpl-paper::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(125deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 34%);
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .tpl-preview-image {
         width: 100%;
         height: 100%;
         display: block;
-        border: 0;
-        background: #f8fafc;
-        pointer-events: none;
+        object-fit: cover;
+        object-position: top center;
+        background: #fff;
+    }
+
+    .tpl-preview-empty {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        background: linear-gradient(135deg, #f8fafc, #eef2ff);
     }
 
     .tpl-preview::after {
@@ -58,80 +174,168 @@
     }
 
     .tpl-meta {
-        padding: 14px 14px 16px;
+        padding: 14px;
     }
 
     .tpl-name {
-        font-size: 1.05rem;
-        font-weight: 700;
-        color: #0f172a;
+        font-size: 1rem;
+        font-weight: 780;
+        color: var(--tpl-text);
     }
 
     .tpl-desc {
-        color: #64748b;
-        font-size: .9rem;
+        color: var(--tpl-muted);
+        font-size: .88rem;
         line-height: 1.45;
     }
 
+    .tpl-actions-bar {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--tpl-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .tpl-actions-bar .btn {
+        border-radius: 10px;
+        font-weight: 700;
+    }
+
+    .tpl-selected-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: .82rem;
+        color: #1e3a8a;
+        background: var(--tpl-accent-soft);
+        border: 1px solid #bfdbfe;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-weight: 700;
+    }
+
+    @media (max-width: 1199.98px) {
+        .tpl-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 991.98px) {
+        .tpl-workbench {
+            grid-template-columns: 1fr;
+        }
+
+        .tpl-filter-panel {
+            position: static;
+        }
+    }
+
     @media (max-width: 575.98px) {
+        .tpl-shell {
+            padding: 16px 8px 24px;
+        }
+
+        .tpl-grid {
+            grid-template-columns: 1fr;
+        }
+
         .tpl-meta {
             padding: 12px 12px 14px;
+        }
+
+        .tpl-actions-bar {
+            flex-direction: column;
+            align-items: stretch;
         }
     }
 </style>
 
+<div class="tpl-shell">
 <div class="container tpl-page">
-    <h1 class="h3 mb-2">Step 1 — Select Template</h1>
-    <p class="text-muted mb-3">Pilih desain CV yang paling cocok. Semua card preview sudah dalam frame penuh dan responsif.</p>
+    <div class="tpl-headline">
+        <h1>Pilih Template CV</h1>
+        <p>Pilih desain yang paling cocok. Kamu bisa ganti template kapan saja nanti.</p>
+    </div>
 
     @if($templates->isEmpty())
         <div class="alert alert-warning">No active templates available.</div>
     @else
-        {{-- Search template --}}
-        <div class="mb-3 tpl-search">
-            <div class="input-group">
-                <span class="input-group-text" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                </span>
-                <input id="tplSearch" type="search" class="form-control" placeholder="Cari template…" autocomplete="off">
-            </div>
-            <div class="form-text">Ketik nama/slug untuk memfilter template.</div>
-        </div>
-
         <form method="POST" action="{{ route('cv-builder.templates.save') }}">
             @csrf
 
-            <div class="row g-3">
-                @foreach($templates as $tpl)
-                    <div class="col-12 col-sm-6 col-xl-4">
-                        <label class="h-100 js-template-card tpl-card" data-name="{{ strtolower($tpl->name) }}" data-slug="{{ strtolower($tpl->slug) }}">
-                            <div class="tpl-preview">
-                                <iframe
-                                    src="{{ route('cv-builder.templates.preview', ['slug' => $tpl->slug]) }}"
-                                    title="Preview {{ $tpl->name }}"
-                                    loading="lazy"
-                                    scrolling="no"
-                                    class="tpl-preview-frame"
-                                ></iframe>
-                            </div>
-                            <div class="tpl-meta">
-                                <div class="form-check d-flex align-items-start gap-2">
-                                    <input class="form-check-input mt-1" type="radio" name="template_slug" value="{{ $tpl->slug }}" @checked(old('template_slug', $templates->firstWhere('is_default', true)?->slug) === $tpl->slug)>
-                                    <span class="form-check-label fw-semibold tpl-name">{{ $tpl->name }}</span>
-                                    @if($tpl->is_default)
-                                        <span class="badge text-bg-primary ms-2">default</span>
+            <div class="tpl-workbench">
+                <aside class="tpl-panel tpl-filter-panel">
+                    <h2>Filter Template</h2>
+                    <div class="tpl-search">
+                        <div class="input-group">
+                            <span class="input-group-text" aria-hidden="true">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                </svg>
+                            </span>
+                            <input id="tplSearch" type="search" class="form-control" placeholder="Cari template…" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="tpl-filter-hint">Ketik nama atau slug template untuk menyaring daftar.</div>
+                    <div class="tpl-filter-hint">Template terpilih akan dipakai untuk preview, print, dan publikasi CV.</div>
+                </aside>
+
+                <section class="tpl-panel tpl-content-panel">
+                    <div class="tpl-grid">
+                        @foreach($templates as $tpl)
+                            @php
+                                $thumbnailPath = $tpl->thumbnail;
+                                $thumbnailUrl = ($thumbnailPath && \Illuminate\Support\Facades\Storage::disk('public')->exists($thumbnailPath))
+                                    ? asset('storage/'.$thumbnailPath)
+                                    : null;
+                            @endphp
+                            <label class="h-100 js-template-card tpl-card" data-name="{{ strtolower($tpl->name) }}" data-slug="{{ strtolower($tpl->slug) }}">
+                                <div class="tpl-preview">
+                                    <div class="tpl-paper">
+                                        @if($thumbnailUrl)
+                                            <img
+                                                src="{{ $thumbnailUrl }}"
+                                                alt="Thumbnail {{ $tpl->name }}"
+                                                loading="lazy"
+                                                class="tpl-preview-image"
+                                            >
+                                        @else
+                                            <div class="tpl-preview-empty">No Thumbnail</div>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="tpl-meta">
+                                    <div class="form-check d-flex align-items-start gap-2">
+                                        <input class="form-check-input mt-1" type="radio" name="template_slug" value="{{ $tpl->slug }}" @checked(old('template_slug', $templates->firstWhere('is_default', true)?->slug) === $tpl->slug)>
+                                        <span class="form-check-label fw-semibold tpl-name">{{ $tpl->name }}</span>
+                                        @if($tpl->is_default)
+                                            <span class="badge text-bg-primary ms-2">default</span>
+                                        @endif
+                                    </div>
+                                    @if($tpl->description)
+                                        <p class="tpl-desc mt-2 mb-0">{{ $tpl->description }}</p>
                                     @endif
                                 </div>
-                                @if($tpl->description)
-                                    <p class="tpl-desc mt-2 mb-0">{{ $tpl->description }}</p>
-                                @endif
-                            </div>
-                        </label>
+                            </label>
+                        @endforeach
                     </div>
-                @endforeach
+
+                    @error('template_slug')
+                        <div class="text-danger small mt-2">{{ $message }}</div>
+                    @enderror
+
+                    <div class="tpl-actions-bar">
+                        <span class="tpl-selected-chip" id="selectedTemplateChip">Template terpilih: -</span>
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-outline-secondary" href="{{ route('cvs.index') }}">Pilih Nanti</a>
+                            <button class="btn btn-primary" type="submit">Gunakan Template Ini</button>
+                        </div>
+                    </div>
+                </section>
             </div>
 
             <script>
@@ -141,11 +345,17 @@
 
                     const cards = Array.from(document.querySelectorAll('.js-template-card'));
                     const radios = Array.from(document.querySelectorAll('input[name="template_slug"]'));
+                    const selectedChip = document.getElementById('selectedTemplateChip');
 
                     const syncSelected = () => {
                         cards.forEach((card) => {
                             const radio = card.querySelector('input[name="template_slug"]');
                             card.classList.toggle('is-selected', !!radio?.checked);
+
+                            if (radio?.checked && selectedChip) {
+                                const name = card.querySelector('.tpl-name')?.textContent?.trim() || radio.value;
+                                selectedChip.textContent = `Template terpilih: ${name}`;
+                            }
                         });
                     };
 
@@ -167,16 +377,8 @@
                     apply();
                 })();
             </script>
-
-            @error('template_slug')
-                <div class="text-danger small mt-2">{{ $message }}</div>
-            @enderror
-
-            <div class="mt-3 d-flex gap-2">
-                <button class="btn btn-primary" type="submit">Continue</button>
-                <a class="btn btn-outline-secondary" href="{{ route('cvs.index') }}">Cancel</a>
-            </div>
         </form>
     @endif
+</div>
 </div>
 @endsection
