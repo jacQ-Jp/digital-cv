@@ -4,17 +4,17 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-.lp-auth{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#08051a;z-index:9999;padding:1.25rem;font-family:'Inter',system-ui,-apple-system,sans-serif;overflow:hidden}
+.lp-auth{position:relative;min-height:100vh;display:flex;flex-direction:column;background:#08051a;z-index:9999;padding:2rem 1.25rem;font-family:'Inter',system-ui,-apple-system,sans-serif;overflow-x:hidden}
 
 .lp-bg-orb{position:absolute;border-radius:50%;pointer-events:none}
 .lp-bg-orb-1{width:450px;height:450px;top:-14%;left:-10%;background:radial-gradient(circle,rgba(124,58,237,.1),transparent 60%);filter:blur(60px)}
 .lp-bg-orb-2{width:380px;height:380px;bottom:-12%;right:-8%;background:radial-gradient(circle,rgba(168,85,247,.07),transparent 60%);filter:blur(60px)}
 .lp-bg-grid{position:absolute;inset:0;opacity:.015;background-image:linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px);background-size:70px 70px;pointer-events:none}
 
-.lp-box{position:relative;width:100%;max-width:900px;height:600px;background:rgba(255,255,255,.035);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.06);border-radius:28px;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.3);animation:lpEntry .8s cubic-bezier(.16,1,.3,1) both}
+.lp-box{margin:auto;position:relative;width:100%;max-width:900px;height:auto;min-height:640px;background:rgba(255,255,255,.035);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.06);border-radius:28px;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.3);animation:lpEntry .8s cubic-bezier(.16,1,.3,1) both}
 @keyframes lpEntry{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
 
-.lp-panels{display:flex;height:100%;position:relative;z-index:1}
+.lp-panels{display:flex;min-height:100%;position:relative;z-index:1}
 .lp-pnl{width:50%;display:flex;align-items:center;justify-content:center;padding:2.5rem 2rem}
 .lp-pnl-in{width:100%;max-width:310px}
 
@@ -89,7 +89,7 @@
 .lp-ov-btn:active{transform:scale(.97)}
 
 @media(max-width:768px){
-    .lp-box{height:auto;border-radius:20px;max-width:440px}
+    .lp-box{height:auto;min-height:auto;border-radius:20px;max-width:440px}
     .lp-panels{flex-direction:column}
     .lp-pnl{width:100%;padding:2rem 1.5rem}
     .lp-pnl.lp-hide-mobile{display:none}
