@@ -2,257 +2,472 @@
 
 @section('content')
 @php
-	$name = data_get($cv, 'personal_name') ?: (data_get($cv, 'user.name') ?? 'CV');
-	$email = data_get($cv, 'personal_email') ?: (data_get($cv, 'user.email') ?? '');
-	$title = data_get($cv, 'title');
-	$summary = data_get($cv, 'summary');
-	$phone = data_get($cv, 'personal_phone');
-	$location = data_get($cv, 'personal_location');
-	$linkedin = data_get($cv, 'personal_linkedin');
-	$website = data_get($cv, 'personal_website');
-	$thumbMode = ($layout === 'layouts.thumb');
+    $name = data_get($cv, 'personal_name') ?: (data_get($cv, 'user.name') ?? 'BENJAMIN TAYLOR');
+    $email = data_get($cv, 'personal_email') ?: (data_get($cv, 'user.email') ?? 'info@benjamintaylor.com');
+    $title = data_get($cv, 'title') ?: 'JOB TITLE GOES HERE';
+    $summary = data_get($cv, 'summary');
+    $phone = data_get($cv, 'personal_phone');
+    $location = data_get($cv, 'personal_location');
+    $linkedin = data_get($cv, 'personal_linkedin');
+    $website = data_get($cv, 'personal_website');
+    $thumbMode = ($layout === 'layouts.thumb');
 
-	$photoPreview = data_get($cv, 'photo_preview_url');
-	$photoPath = data_get($cv, 'photo_path');
-	$photo = $photoPreview ?: ($photoPath ? asset('storage/'.$photoPath) : null);
+    $photoPreview = data_get($cv, 'photo_preview_url');
+    $photoPath = data_get($cv, 'photo_path');
+    $photo = $photoPreview ?: ($photoPath ? asset('storage/'.$photoPath) : null);
 
-	$accent = strtoupper((string) data_get($cv, 'accent_color', '#7C3AED'));
-	$themes = [
-		'#7C3AED' => ['accent' => '#7C3AED', 'deep' => '#4C1D95', 'soft' => '#EDE9FE'],
-		'#0EA5A4' => ['accent' => '#0EA5A4', 'deep' => '#0F766E', 'soft' => '#CCFBF1'],
-		'#3B82F6' => ['accent' => '#3B82F6', 'deep' => '#1D4ED8', 'soft' => '#DBEAFE'],
-		'#EA580C' => ['accent' => '#EA580C', 'deep' => '#C2410C', 'soft' => '#FFEDD5'],
-		'#334155' => ['accent' => '#334155', 'deep' => '#0F172A', 'soft' => '#E2E8F0'],
-		'#166534' => ['accent' => '#166534', 'deep' => '#14532D', 'soft' => '#DCFCE7'],
-		'#BE123C' => ['accent' => '#BE123C', 'deep' => '#9F1239', 'soft' => '#FFE4E6'],
-	];
-	$tone = $themes[$accent] ?? $themes['#7C3AED'];
+    // B&W Theme: Hanya menggunakan Hitam, Putih, dan Abu-abu
+    $accent = '#000000'; 
+    $themes = [
+        '#000000' => ['accent' => '#000000', 'deep' => '#000000', 'soft' => '#f3f3f3'],
+    ];
+    $tone = $themes['#000000'];
 
-	$experiences = collect(data_get($cv, 'experiences', []));
-	$educations = collect(data_get($cv, 'educations', []));
-	$skills = collect(data_get($cv, 'skills', []));
+    $experiences = collect(data_get($cv, 'experiences', []));
+    $educations = collect(data_get($cv, 'educations', []));
+    $skills = collect(data_get($cv, 'skills', []));
 
-	$placeholderFlags = collect(data_get($cv, 'preview_placeholder_flags', []));
-	$isPlaceholder = fn (string $key): bool => (bool) $placeholderFlags->get($key, false);
-	$itemPlaceholder = fn ($item, string $field): bool => (bool) data_get($item, '_placeholder.'.$field, false);
+    $placeholderFlags = collect(data_get($cv, 'preview_placeholder_flags', []));
+    $isPlaceholder = fn (string $key): bool => (bool) $placeholderFlags->get($key, false);
+    $itemPlaceholder = fn ($item, string $field): bool => (bool) data_get($item, '_placeholder.'.$field, false);
 @endphp
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@400;600&display=swap');
 
 .cv-paper {
-	--ac: {{ $tone['accent'] }};
-	--ac-deep: {{ $tone['deep'] }};
-	--ac-soft: {{ $tone['soft'] }};
+    --ac: {{ $tone['accent'] }};
+    --ac-deep: {{ $tone['deep'] }};
+    --ac-soft: {{ $tone['soft'] }};
+    --font-head: 'Montserrat', sans-serif;
+    --font-body: 'Open Sans', sans-serif;
 }
 
 .cv-sidebar {
-	font-family: 'Nunito Sans', sans-serif;
-	color: #0f172a;
-	font-size: 12.7px;
-	line-height: 1.62;
-	display: grid;
-	grid-template-columns: 35% 1fr;
-	min-height: 100%;
+    font-family: var(--font-body);
+    color: #111;
+    font-size: 14px;
+    line-height: 1.6;
+    display: grid;
+    grid-template-columns: 30% 1fr; /* Lebar Sidebar 30% */
+    min-height: {{ $thumbMode ? '100%' : '1123px' }};
+    background: #ffffff;
 }
 
-.cv-sidebar .cv-placeholder { opacity: .56; font-style: italic; }
+.cv-sidebar,
+.cv-sidebar * {
+    min-width: 0;
+}
 
+.cv-sidebar :where(h1, h2, h3, h4, p, span, div, li, a) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.cv-sidebar .cv-placeholder { opacity: .4; font-style: italic; }
+
+/* --- SIDEBAR KIRI (BLACK) --- */
 .cv-side {
-	background: linear-gradient(170deg, var(--ac-deep), var(--ac));
-	color: #f8fafc;
-	padding: 18px 14px;
+    background-color: #000000; /* Hitam Pekat */
+    color: #ffffff;
+    padding: {{ $thumbMode ? '30px 20px' : '50px 30px' }};
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center align content */
+    text-align: center;
+    height: 100%;
 }
 
-.cv-main {
-	background: #ffffff;
-	padding: 18px 16px;
-}
-
+/* Foto Profile */
 .cv-side-photo {
-	width: 88px;
-	height: 88px;
-	border-radius: 14px;
-	object-fit: cover;
-	border: 2px solid #ffffff8f;
-	margin-bottom: 12px;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%; /* Lingkaran / Bulat */
+    object-fit: cover;
+    border: 4px solid #ffffff; /* Border Putih tebal */
+    margin-bottom: 25px;
+    background-color: #333;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.1); /* Halo effect halus */
+}
+
+/* Nama & Judul di Sidebar (Jika ingin nama disamping foto, tapi di model B&W biasanya nama di Kanan atau Bawah Foto) 
+   Sesuai request: "BENJAMIN TAYLOR" di sidebar? 
+   Biasanya di layout ini, Header ada di Sidebar. */
+   
+.cv-side-name-container {
+    margin-bottom: 40px;
 }
 
 .cv-side-name {
-	margin: 0;
-	font-family: 'Playfair Display', serif;
-	font-size: 28px;
-	line-height: 1.06;
+    margin: 0;
+    font-family: var(--font-head);
+    font-size: {{ $thumbMode ? '24px' : '28px' }};
+    font-weight: 800; /* Extra Bold */
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #fff;
 }
 
 .cv-side-role {
-	margin-top: 6px;
-	font-size: 10.5px;
-	letter-spacing: .18em;
-	text-transform: uppercase;
-	font-weight: 700;
-	color: #dbeafe;
+    margin-top: 8px;
+    font-family: var(--font-head);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #aaaaaa; /* Abu-abu muda */
 }
 
+/* Contact Section */
 .cv-side-title {
-	margin: 14px 0 8px;
-	font-size: 10px;
-	letter-spacing: .2em;
-	text-transform: uppercase;
-	font-weight: 800;
-	color: #e0e7ff;
+    width: 100%;
+    text-align: left;
+    margin: 0 0 20px 0;
+    font-family: var(--font-head);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #fff;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #333;
 }
 
-.cv-side-line {
-	font-size: 11.2px;
-	margin-bottom: 7px;
-	word-break: break-word;
+.cv-contact-item {
+    width: 100%;
+    text-align: left;
+    margin-bottom: 15px;
+    font-size: 13px;
+    color: #cccccc;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
-.cv-side-chip {
-	display: inline-block;
-	margin: 0 6px 6px 0;
-	padding: 4px 8px;
-	border-radius: 999px;
-	border: 1px solid #ffffff5f;
-	background: #ffffff1a;
-	font-size: 10.5px;
-	font-weight: 700;
+.cv-contact-item strong {
+    color: #fff;
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+}
+
+/* Social Icons (Simple Text Style for B&W) */
+.cv-social-link {
+    color: #fff;
+    text-decoration: none;
+    font-size: 13px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 2px;
+    transition: all 0.3s;
+}
+.cv-social-link:hover {
+    color: #fff;
+    border-bottom-color: #fff;
+}
+
+
+/* --- MAIN RIGHT (WHITE) --- */
+.cv-main {
+    background: #ffffff;
+    padding: {{ $thumbMode ? '30px 35px' : '60px 50px' }};
+    color: #000;
+    overflow: visible;
+}
+
+/* Main Name (Hidden in Sidebar to keep B&W clean, showing in Main) */
+.cv-main-header {
+    margin-bottom: 40px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 20px;
 }
 
 .cv-main-name {
-	margin: 0;
-	font-family: 'Playfair Display', serif;
-	font-size: 28px;
-	color: #0f172a;
-	display: none;
+    margin: 0;
+    font-family: var(--font-head);
+    font-size: {{ $thumbMode ? '32px' : '48px' }};
+    font-weight: 800;
+    text-transform: uppercase;
+    line-height: 1.1;
+    color: #000;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
 }
 
+.cv-main-title {
+    margin-top: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: #666;
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+/* Section Styling */
 .cv-main-section {
-	margin-bottom: 14px;
+    margin-bottom: 45px;
 }
 
-.cv-main-heading {
-	margin: 0 0 8px;
-	font-size: 10px;
-	letter-spacing: .2em;
-	text-transform: uppercase;
-	color: var(--ac-deep);
-	font-weight: 800;
+.cv-section-heading {
+    font-family: var(--font-head);
+    font-size: 18px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+    color: #000;
+    display: flex;
+    align-items: center;
 }
 
+.cv-section-heading::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: #e5e5e5;
+    margin-left: 15px;
+}
+
+/* About Me */
 .cv-summary {
-	margin: 0;
-	color: #334155;
-	line-height: 1.74;
+    font-size: 14px;
+    line-height: 1.8;
+    color: #333;
+    text-align: justify;
 }
 
-.cv-entry {
-	border-left: 2px solid var(--ac-soft);
-	padding-left: 9px;
-	margin-bottom: 10px;
+/* Skills Grid */
+.cv-skills-grid {
+    display: grid;
+    grid-template-columns: repeat({{ $thumbMode ? '2' : '3' }}, 1fr);
+    gap: 15px;
+    margin-top: 10px;
 }
 
-.cv-entry-top {
-	display: flex;
-	justify-content: space-between;
-	gap: 10px;
-	align-items: baseline;
+.cv-skill-item {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 700;
+    color: #000;
+    background: #f5f5f5;
+    padding: 10px 0;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+    text-transform: uppercase;
+}
+
+/* Experience & Education Items */
+.cv-entry-item {
+    margin-bottom: 25px;
+}
+
+.cv-entry-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    row-gap: 6px;
+    margin-bottom: 5px;
 }
 
 .cv-entry-role {
-	margin: 0;
-	font-size: 13px;
-	font-weight: 800;
+    font-family: var(--font-head);
+    font-size: 15px;
+    font-weight: 800;
+    color: #000;
+    text-transform: uppercase;
+    max-width: 100%;
 }
 
 .cv-entry-date {
-	font-size: 10.2px;
-	color: var(--ac-deep);
-	font-weight: 700;
-	white-space: nowrap;
+    font-family: var(--font-head);
+    font-size: 12px;
+    font-weight: 700;
+    color: #666;
+    max-width: 100%;
+    text-align: right;
 }
 
-.cv-entry-sub {
-	font-size: 11.3px;
-	color: #475569;
-	margin-top: 2px;
+.cv-entry-company {
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 8px;
+    display: block;
 }
 
 .cv-entry-desc {
-	margin-top: 5px;
-	font-size: 11.7px;
-	color: #334155;
-	line-height: 1.65;
+    font-size: 13px;
+    color: #555;
+    line-height: 1.6;
+    text-align: justify;
 }
 
-@media (max-width: 760px) {
-	.cv-sidebar {
-		grid-template-columns: 1fr;
-	}
-
-	.cv-main-name { display: block; margin-bottom: 10px; }
+/* Mobile Responsive */
+@media screen and (max-width: {{ $thumbMode ? '0px' : '760px' }}) {
+    .cv-sidebar {
+        grid-template-columns: 1fr;
+    }
+    .cv-main {
+        padding: 40px 25px;
+    }
+    .cv-skills-grid {
+        grid-template-columns: 1fr 1fr;
+    }
 }
 </style>
 
 <div class="cv-sidebar">
-	<aside class="cv-side">
-		@if($photo)<img src="{{ $photo }}" alt="Photo" class="cv-side-photo">@endif
+    <!-- SIDEBAR KIRI (HITAM) -->
+    <aside class="cv-side">
+        @if($photo)
+            <img src="{{ $photo }}" alt="Photo" class="cv-side-photo">
+        @else
+            <!-- Placeholder Image Circle -->
+            <div class="cv-side-photo d-flex align-items-center justify-content-center text-muted" style="background:#333;">
+                <i class="bi bi-person fs-2"></i>
+            </div>
+        @endif
 
-		<h1 class="cv-side-name {{ $isPlaceholder('personal_name') ? 'cv-placeholder' : '' }}">{{ $thumbMode ? Str::limit($name, 20) : $name }}</h1>
-		@if($title)<div class="cv-side-role {{ $isPlaceholder('title') ? 'cv-placeholder' : '' }}">{{ $title }}</div>@endif
+        <div class="cv-side-name-container">
+            <!-- Optional: Tampilkan Nama di Kiri jika diinginkan, tapi layout standar biasanya Nama Besar di Kanan. 
+                 Sesuai deskripsi: "BENJAMIN TAYLOR" besar. -->
+             <!-- Saya pindahkan Nama Besar ke Kanan untuk balance Layout Sidebar Putih, 
+                  TAPI jika request persis gambar (Sidebar Foto + Contact), maka Nama biasanya di Kanan. -->
+        </div>
 
-		<h2 class="cv-side-title">Contact</h2>
-		@if($email)<div class="cv-side-line {{ $isPlaceholder('personal_email') ? 'cv-placeholder' : '' }}">{{ $email }}</div>@endif
-		@if($phone)<div class="cv-side-line">{{ $phone }}</div>@endif
-		@if($location)<div class="cv-side-line">{{ $location }}</div>@endif
-		@if($linkedin)<div class="cv-side-line">{{ $linkedin }}</div>@endif
-		@if($website)<div class="cv-side-line">{{ $website }}</div>@endif
+        <h2 class="cv-side-title">Contact</h2>
+        
+        @if($phone)
+        <div class="cv-contact-item">
+            <strong>Phone</strong>
+            {{ $phone }}
+        </div>
+        @endif
 
-		<h2 class="cv-side-title">Skills</h2>
-		@foreach($skills as $skill)
-			<span class="cv-side-chip {{ $itemPlaceholder($skill, 'name') ? 'cv-placeholder' : '' }}">{{ data_get($skill, 'name') }}</span>
-		@endforeach
-	</aside>
+        @if($email)
+        <div class="cv-contact-item">
+            <strong>Email</strong>
+            <a href="mailto:{{ $email }}" style="color:#cccccc; text-decoration:none;">{{ $email }}</a>
+        </div>
+        @endif
 
-	<main class="cv-main">
-		<h1 class="cv-main-name {{ $isPlaceholder('personal_name') ? 'cv-placeholder' : '' }}">{{ $name }}</h1>
+        @if($location)
+        <div class="cv-contact-item">
+            <strong>Address</strong>
+            {{ $location }}
+        </div>
+        @endif
 
-		@if($summary)
-			<section class="cv-main-section">
-				<h2 class="cv-main-heading">Profile</h2>
-				<p class="cv-summary {{ $isPlaceholder('summary') ? 'cv-placeholder' : '' }}">{{ $thumbMode ? Str::limit($summary, 220) : $summary }}</p>
-			</section>
-		@endif
+        <h2 class="cv-side-title" style="margin-top: 30px;">Social</h2>
+        @if($linkedin)
+        <div class="cv-contact-item">
+            <a href="{{ $linkedin }}" target="_blank" class="cv-social-link">LinkedIn Profile</a>
+        </div>
+        @endif
+        @if($website)
+        <div class="cv-contact-item">
+            <a href="{{ $website }}" target="_blank" class="cv-social-link">Portfolio Website</a>
+        </div>
+        @endif
 
-		<section class="cv-main-section">
-			<h2 class="cv-main-heading">Experience</h2>
-			@foreach(($thumbMode ? $experiences->take(3) : $experiences) as $exp)
-				<article class="cv-entry">
-					<div class="cv-entry-top">
-						<p class="cv-entry-role {{ $itemPlaceholder($exp, 'position') ? 'cv-placeholder' : '' }}">{{ data_get($exp, 'position') }}</p>
-						<span class="cv-entry-date {{ ($itemPlaceholder($exp, 'start_date') || $itemPlaceholder($exp, 'end_date')) ? 'cv-placeholder' : '' }}">{{ data_get($exp, 'start_date') }}{{ data_get($exp, 'end_date') ? ' - '.data_get($exp, 'end_date') : ' - Present' }}</span>
-					</div>
-					<div class="cv-entry-sub {{ $itemPlaceholder($exp, 'company') ? 'cv-placeholder' : '' }}">{{ data_get($exp, 'company') }}</div>
-					@if(data_get($exp, 'description'))
-						<div class="cv-entry-desc {{ $itemPlaceholder($exp, 'description') ? 'cv-placeholder' : '' }}">{{ $thumbMode ? Str::limit((string) data_get($exp, 'description'), 170) : data_get($exp, 'description') }}</div>
-					@endif
-				</article>
-			@endforeach
-		</section>
+    </aside>
 
-		<section class="cv-main-section">
-			<h2 class="cv-main-heading">Education</h2>
-			@foreach($educations as $edu)
-				<article class="cv-entry">
-					<div class="cv-entry-top">
-						<p class="cv-entry-role {{ $itemPlaceholder($edu, 'school') ? 'cv-placeholder' : '' }}">{{ data_get($edu, 'school') }}</p>
-						<span class="cv-entry-date {{ $itemPlaceholder($edu, 'year') ? 'cv-placeholder' : '' }}">{{ data_get($edu, 'year') }}</span>
-					</div>
-					<div class="cv-entry-sub {{ $itemPlaceholder($edu, 'degree') ? 'cv-placeholder' : '' }}">{{ data_get($edu, 'degree') }}</div>
-				</article>
-			@endforeach
-		</section>
-	</main>
+    <!-- MAIN KANAN (PUTIH) -->
+    <main class="cv-main">
+        
+        <!-- Header Besar di Kanan -->
+        <header class="cv-main-header">
+            <h1 class="cv-main-name {{ $isPlaceholder('personal_name') ? 'cv-placeholder' : '' }}">
+                {{ $thumbMode ? Str::limit($name, 25) : $name }}
+            </h1>
+            <div class="cv-main-title {{ $isPlaceholder('title') ? 'cv-placeholder' : '' }}">
+                {{ $title }}
+            </div>
+        </header>
+
+        <!-- About Me -->
+        @if($summary)
+        <section class="cv-main-section">
+            <h2 class="cv-section-heading">About Me</h2>
+            <p class="cv-summary {{ $isPlaceholder('summary') ? 'cv-placeholder' : '' }}">
+                {{ $thumbMode ? Str::limit($summary, 300) : $summary }}
+            </p>
+        </section>
+        @endif
+
+        <!-- Skills (Pindah ke Main Area agar tampilan B&W seimbang) -->
+        <section class="cv-main-section">
+            <h2 class="cv-section-heading">Skills</h2>
+            <div class="cv-skills-grid">
+                @foreach($skills as $skill)
+                    <div class="cv-skill-item {{ $itemPlaceholder($skill, 'name') ? 'cv-placeholder' : '' }}">
+                        {{ data_get($skill, 'name') }}
+                    </div>
+                @endforeach
+                <!-- Placeholder jika data kosong -->
+                @if($skills->isEmpty())
+                    <div class="cv-skill-item cv-placeholder">Skill One</div>
+                    <div class="cv-skill-item cv-placeholder">Skill Two</div>
+                    <div class="cv-skill-item cv-placeholder">Skill Three</div>
+                    <div class="cv-skill-item cv-placeholder">Skill Four</div>
+                    <div class="cv-skill-item cv-placeholder">Skill Five</div>
+                @endif
+            </div>
+        </section>
+
+        <!-- Experience -->
+        <section class="cv-main-section">
+            <h2 class="cv-section-heading">Experience</h2>
+            @foreach(($thumbMode ? $experiences->take(3) : $experiences) as $exp)
+                <article class="cv-entry-item">
+                    <div class="cv-entry-head">
+                        <div class="cv-entry-role {{ $itemPlaceholder($exp, 'position') ? 'cv-placeholder' : '' }}">
+                            {{ data_get($exp, 'position') }}
+                        </div>
+                        <div class="cv-entry-date {{ ($itemPlaceholder($exp, 'start_date') || $itemPlaceholder($exp, 'end_date')) ? 'cv-placeholder' : '' }}">
+                            {{ data_get($exp, 'start_date') }} {{ data_get($exp, 'end_date') ? '- ' . data_get($exp, 'end_date') : '- Present' }}
+                        </div>
+                    </div>
+                    <span class="cv-entry-company {{ $itemPlaceholder($exp, 'company') ? 'cv-placeholder' : '' }}">
+                        {{ data_get($exp, 'company') }}
+                    </span>
+                    @if(data_get($exp, 'description'))
+                        <div class="cv-entry-desc {{ $itemPlaceholder($exp, 'description') ? 'cv-placeholder' : '' }}">
+                            {{ $thumbMode ? Str::limit((string) data_get($exp, 'description'), 200) : data_get($exp, 'description') }}
+                        </div>
+                    @endif
+                </article>
+            @endforeach
+        </section>
+
+        <!-- Education -->
+        <section class="cv-main-section">
+            <h2 class="cv-section-heading">Education</h2>
+            @foreach($educations as $edu)
+                <article class="cv-entry-item">
+                    <div class="cv-entry-head">
+                        <div class="cv-entry-role {{ $itemPlaceholder($edu, 'school') ? 'cv-placeholder' : '' }}">
+                            {{ data_get($edu, 'school') }}
+                        </div>
+                        <div class="cv-entry-date {{ $itemPlaceholder($edu, 'year') ? 'cv-placeholder' : '' }}">
+                            {{ data_get($edu, 'year') }}
+                        </div>
+                    </div>
+                    <span class="cv-entry-company {{ $itemPlaceholder($edu, 'degree') ? 'cv-placeholder' : '' }}">
+                        {{ data_get($edu, 'degree') }}
+                    </span>
+                </article>
+            @endforeach
+        </section>
+
+    </main>
 </div>
 @endsection

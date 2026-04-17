@@ -38,29 +38,61 @@
 
 <style>
     /* --- MODERN RESET & VARIABLES --- */
+    * {
+        box-sizing: border-box; /* Mencegah padding menyebabkan overflow horizontal */
+    }
+
     .cv-paper {
         --ac: {{ $theme['accent'] }};
         --ac-dark: {{ $theme['accent_dark'] }};
         --ac-soft: {{ $theme['accent_soft'] }};
         --bg-soft: {{ $theme['bg_soft'] }};
         
-        background-color: #f1f5f9; /* Latar belakang halaman abu-abu muda */
+        background-color: #f1f5f9;
         color: #334155;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
 
     .cv-placeholder { opacity: 0.5; font-style: italic; }
 
+    .sheet,
+    .sheet * {
+        min-width: 0;
+    }
+
+    .sheet :where(h1, h2, h3, h4, p, span, div, li, a) {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
     /* --- MAIN CONTAINER --- */
     .sheet {
         max-width: 210mm;
+        min-height: 297mm;
         margin: 40px auto;
         background: #fff;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1); /* Shadow modern yang halus */
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
         border-radius: 16px;
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        
+        /* ANTI-POTONG UTAMA: Cegah potongan di tengah halaman */
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .sheet-thumb {
+        max-width: 100%;
+        height: 100%;
+        min-height: 100%;
+        margin: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .sheet-thumb .layout {
+        min-height: 100%;
     }
 
     /* --- HEADER AREA --- */
@@ -68,6 +100,10 @@
         padding: 48px 48px 32px 48px;
         border-bottom: 1px solid #e2e8f0;
         background: #fff;
+        
+        /* ANTI-POTONG: Jaga agar kepala tidak terpisah */
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
 
     .name {
@@ -88,7 +124,6 @@
         margin-bottom: 20px;
     }
 
-    /* Kontak di header dibuat minimalis */
     .meta {
         display: flex;
         flex-wrap: wrap;
@@ -101,7 +136,6 @@
         align-items: center;
         gap: 6px;
     }
-    /* Ikon simpel menggunakan CSS pseudo-elements */
     .meta span::before {
         content: '';
         display: block;
@@ -121,12 +155,23 @@
         font-size: 13px;
         line-height: 1.6;
         color: #475569;
+        
+        /* ANTI-POTONG: Ringkasan harus utuh */
+        break-inside: avoid;
+        page-break-inside: avoid;
+        /* Mencegah satu baris sendirian di bawah/halaman baru */
+        orphans: 3;
+        widows: 3;
     }
 
     /* --- LAYOUT GRID --- */
     .layout {
         display: grid;
-        grid-template-columns: 1.6fr 1fr; /* Kiri lebih lebar */
+        grid-template-columns: 1.6fr 1fr;
+        flex: 1 1 auto;
+        min-height: 0;
+        /* Grid container jarang dipotong, tapi amannya dijaga */
+        break-inside: avoid; 
     }
 
     /* --- MAIN COLUMN (Experience & Edu) --- */
@@ -135,7 +180,13 @@
         border-right: 1px solid #f1f5f9;
     }
 
-    .section { margin-bottom: 36px; }
+    .section { 
+        margin-bottom: 36px;
+        
+        /* ANTI-POTONG: Usahakan section tidak terpisah judul dan isinya */
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
     
     .section-title {
         font-size: 12px;
@@ -146,6 +197,8 @@
         margin-bottom: 20px;
         display: flex;
         align-items: center;
+        /* Judul section sebaiknya ikut dengan item pertama */
+        break-after: avoid;
     }
     .section-title::after {
         content: '';
@@ -161,6 +214,10 @@
         padding-left: 24px;
         border-left: 2px solid #f1f5f9;
         padding-bottom: 24px;
+        
+        /* ANTI-POTONG PENTING: Kartu pengalaman kerja tidak boleh terbelah dua */
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
     .item-card:last-child { border-left: 2px solid transparent; }
 
@@ -182,7 +239,11 @@
         display: flex;
         justify-content: space-between;
         align-items: baseline;
+        flex-wrap: wrap;
+        row-gap: 6px;
         margin-bottom: 4px;
+        /* Agar Header item (Posisi/Tanggal) tidak terpisah dari deskripsi */
+        break-inside: avoid;
     }
 
     .position { font-size: 15px; font-weight: 700; color: #1e293b; }
@@ -195,7 +256,9 @@
         background: var(--ac-soft);
         padding: 2px 8px;
         border-radius: 4px;
-        white-space: nowrap;
+        white-space: normal;
+        max-width: 100%;
+        text-align: right;
     }
 
     .desc {
@@ -203,16 +266,27 @@
         font-size: 13px;
         line-height: 1.6;
         color: #475569;
+        /* Agar paragraf deskripsi tidak meninggalkan satu baris di halaman sebelumnya/sesudahnya */
+        orphans: 3;
+        widows: 3;
     }
 
     /* --- SIDEBAR COLUMN (Skills & Contact) --- */
     .side-col {
         padding: 40px;
-        background-color: #fcfcfc; /* Sedikit beda tone */
+        background-color: #fcfcfc;
     }
 
     /* Skill Tags */
-    .skill-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .skill-group { 
+        display: flex; 
+        flex-wrap: wrap; 
+        gap: 8px;
+        
+        /* Cegah pemotongan deretan skill */
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
     
     .skill-tag {
         font-size: 11px;
@@ -222,9 +296,9 @@
         border: 1px solid #e2e8f0;
         padding: 6px 12px;
         border-radius: 6px;
-        transition: all 0.2s;
+        /* Tag individual boleh dipotong jika groupnya panjang, tapi lebih aman dijaga */
+        break-inside: avoid;
     }
-    /* Sedikit trik visual modern */
     .skill-tag:hover {
         border-color: var(--ac);
         background: var(--ac-soft);
@@ -236,6 +310,10 @@
         border: 1px solid #e2e8f0;
         border-radius: 8px;
         padding: 20px;
+        
+        /* ANTI-POTONG: Box kontak harus utuh */
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
     
     .contact-row {
@@ -245,6 +323,8 @@
         margin-bottom: 16px;
         font-size: 12.5px;
         color: #475569;
+        /* Baris kontak tidak boleh terpisah */
+        break-inside: avoid;
     }
     .contact-row:last-child { margin-bottom: 0; }
     
@@ -266,13 +346,17 @@
         margin-bottom: 16px;
         padding-bottom: 16px;
         border-bottom: 1px dashed #e2e8f0;
+        
+        /* ANTI-POTONG: Item pendidikan harus utuh */
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
     .edu-item:last-child { border: none; margin: 0; padding: 0; }
     .edu-school { font-weight: 700; color: #1e293b; font-size: 13px; }
     .edu-degree { color: #64748b; font-size: 12px; margin-top: 2px; }
     .edu-year { font-size: 11px; color: var(--ac); font-weight: 600; margin-top: 4px; }
 
-    @media (max-width: 768px) {
+    @media screen and (max-width: {{ $t ? '0px' : '768px' }}) {
         .sheet { margin: 0; border-radius: 0; height: auto; }
         .head { padding: 30px 20px; }
         .layout { grid-template-columns: 1fr; }
@@ -280,10 +364,10 @@
         .main-col { border-right: none; border-bottom: 1px solid #f1f5f9; }
     }
 </style>
-<div class="sheet">
+<div class="sheet {{ $t ? 'sheet-thumb' : '' }}">
     <!-- HEADER -->
     <header class="head">
-        <h1 class="name {{ $isPlaceholder('personal_name') ? 'cv-placeholder' : '' }}">{{ $t ? Str::limit($n, 30) : $n }}</h1>
+        <h1 class="name {{ $isPlaceholder('personal_name') ? 'cv-placeholder' : '' }}">{{ $t ? Str::limit($n, 38) : $n }}</h1>
         @if($title)<div class="role {{ $isPlaceholder('title') ? 'cv-placeholder' : '' }}">{{ $title }}</div>@endif
         
         <div class="meta">
@@ -295,7 +379,7 @@
 
         @if($summary)
             <div class="summary-box {{ $isPlaceholder('summary') ? 'cv-placeholder' : '' }}">
-                {{ $t ? Str::limit($summary, 180) : $summary }}
+                {{ $t ? Str::limit($summary, 260) : $summary }}
             </div>
         @endif
     </header>
@@ -306,7 +390,7 @@
             <section class="section">
                 <div class="section-title">Work Experience</div>
                 <!-- Menggunakan '?? []' untuk mencegah error jika data kosong -->
-                @foreach(($t ? ($cv->experiences ?? [])->take(3) : ($cv->experiences ?? [])) as $x)
+                @foreach(($t ? ($cv->experiences ?? [])->take(4) : ($cv->experiences ?? [])) as $x)
                     <article class="item-card">
                         <div class="header-row">
                             <div>
@@ -319,7 +403,7 @@
                         </div>
                         @if($x->description)
                             <div class="desc {{ $itemPlaceholder($x, 'description') ? 'cv-placeholder' : '' }}">
-                                {{ $t ? Str::limit($x->description, 150) : $x->description }}
+                                {{ $t ? Str::limit($x->description, 220) : $x->description }}
                             </div>
                         @endif
                     </article>

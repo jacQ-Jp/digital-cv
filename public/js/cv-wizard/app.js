@@ -601,17 +601,17 @@ if (root) {
         }
 
         const url = this.state.cv.public_url;
-        if (!url) {
-          this.showToast('CV published, namun public link belum tersedia.');
-          return;
+        let copied = false;
+        
+        if (url) {
+          copied = await this.autoCopyText(url);
         }
-
-        const copied = await this.autoCopyText(url);
-        this.showToast(copied ? 'Link berhasil disalin' : 'CV published. Link tersedia di halaman publik.');
+        
+        this.showToast(copied ? 'Link berhasil disalin' : 'CV berhasil dipublish');
 
         window.setTimeout(() => {
-          window.location.assign(url);
-        }, copied ? 500 : 700);
+          this.redirectToCvListWithNotice('published');
+        }, 350);
       },
       downloadPdf() {
         window.open(`${baseUrl}/pdf`, '_blank');

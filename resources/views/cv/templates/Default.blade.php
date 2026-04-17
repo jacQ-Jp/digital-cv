@@ -43,6 +43,16 @@
 
     .cv-placeholder { opacity: 0.5; font-style: italic; }
 
+    .sheet,
+    .sheet * {
+        min-width: 0;
+    }
+
+    .sheet :where(h1, h2, h3, h4, p, span, div, li, a) {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
     /* --- MAIN CONTAINER --- */
     .sheet {
         max-width: 210mm;
@@ -123,11 +133,13 @@
         display: flex;
         justify-content: space-between;
         align-items: baseline;
+        flex-wrap: wrap;
+        row-gap: 6px;
         margin-bottom: 4px;
     }
 
     .job-title { font-weight: 700; font-size: 15px; color: {{ $theme['heading'] }}; }
-    .job-date { font-size: 12px; font-weight: 600; color: {{ $theme['accent'] }}; white-space: nowrap; }
+    .job-date { font-size: 12px; font-weight: 600; color: {{ $theme['accent'] }}; white-space: normal; max-width: 100%; text-align: right; }
     
     .job-company { font-size: 13px; font-style: italic; color: #64748b; margin-bottom: 8px; }
     
@@ -191,7 +203,7 @@
         color: {{ $theme['heading'] }};
     }
 
-    @media (max-width: 768px) {
+    @media screen and (max-width: {{ $t ? '0px' : '768px' }}) {
         .sheet { grid-template-columns: 1fr; height: auto; }
         .main-col { border-right: none; padding: 30px; }
         .sidebar { padding: 30px; }
@@ -206,7 +218,7 @@
         <!-- Header -->
         <header>
             <h1 class="name {{ $isPlaceholder('personal_name') ? 'cv-placeholder' : '' }}">
-                {{ $t ? Str::limit($n, 25) : $n }}
+                {{ $t ? Str::limit($n, 34) : $n }}
             </h1>
             @if($title)
                 <div class="role {{ $isPlaceholder('title') ? 'cv-placeholder' : '' }}">
@@ -227,7 +239,7 @@
             <div class="section">
                 <div class="section-title">Professional Summary</div>
                 <p class="summary {{ $isPlaceholder('summary') ? 'cv-placeholder' : '' }}">
-                    {{ $t ? Str::limit($summary, 250) : $summary }}
+                    {{ $t ? Str::limit($summary, 320) : $summary }}
                 </p>
             </div>
         @endif
@@ -235,7 +247,7 @@
         <!-- Experience -->
         <div class="section">
             <div class="section-title">Work Experience</div>
-            @foreach(($t ? ($cv->experiences ?? [])->take(3) : ($cv->experiences ?? [])) as $x)
+            @foreach(($t ? ($cv->experiences ?? [])->take(4) : ($cv->experiences ?? [])) as $x)
                 <div class="job-item">
                     <div class="job-header">
                         <div class="job-title {{ $itemPlaceholder($x, 'position') ? 'cv-placeholder' : '' }}">{{ $x->position }}</div>
@@ -246,7 +258,7 @@
                     <div class="job-company {{ $itemPlaceholder($x, 'company') ? 'cv-placeholder' : '' }}">{{ $x->company }}</div>
                     @if($x->description)
                         <p class="job-desc {{ $itemPlaceholder($x, 'description') ? 'cv-placeholder' : '' }}">
-                            {{ $t ? Str::limit($x->description, 150) : $x->description }}
+                            {{ $t ? Str::limit($x->description, 220) : $x->description }}
                         </p>
                     @endif
                 </div>

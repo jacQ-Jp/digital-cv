@@ -34,6 +34,7 @@
                         $isUsed = $usedCount > 0;
                         $isDefault = (bool) $tpl->is_default;
                         $isActive = (bool) $tpl->is_active;
+                        $thumbnailUrl = $tpl->thumbnailPreviewUrl();
 
                         $canDelete = ! $isDefault && ! $isUsed;
                         $canToggleActive = ! $isDefault && ! ($isActive && $isUsed);
@@ -42,8 +43,8 @@
                     @endphp
                     <tr>
                         <td style="width:140px;">
-                            @if($tpl->thumbnail)
-                                <img src="{{ asset('storage/'.$tpl->thumbnail) }}" alt="Thumbnail {{ $tpl->name }}" style="width:120px;height:auto;max-height:90px;object-fit:cover;border:1px solid #e2e8f0;border-radius:8px;background:#fff;">
+                            @if($thumbnailUrl)
+                                <img src="{{ $thumbnailUrl }}" alt="Thumbnail {{ $tpl->name }}" style="width:120px;height:auto;max-height:90px;object-fit:cover;border:1px solid #e2e8f0;border-radius:8px;background:#fff;">
                             @else
                                 <span class="small text-muted">No thumbnail</span>
                             @endif

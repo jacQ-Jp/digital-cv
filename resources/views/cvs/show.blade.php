@@ -117,20 +117,91 @@
 
 <script>
 (() => {
+    const toastId = 'copyLinkToast';
+
+    function showToast(message) {
+        let toast = document.getElementById(toastId);
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = toastId;
+            toast.style.position = 'fixed';
+            toast.style.right = '16px';
+            toast.style.bottom = '16px';
+            toast.style.background = '#0f172a';
+            toast.style.color = '#fff';
+            toast.style.padding = '10px 14px';
+            toast.style.borderRadius = '10px';
+            toast.style.fontSize = '14px';
+            toast.style.fontWeight = '600';
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
+            toast.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+            toast.style.pointerEvents = 'none';
+            toast.style.zIndex = '2000';
+            document.body.appendChild(toast);
+        }
+
+        toast.textContent = message;
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+
+        if (toast._hideTimer) {
+            clearTimeout(toast._hideTimer);
+        }
+
+        toast._hideTimer = setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
+        }, 1500);
+    }
+
+    async function copyText(text) {
+        if (!text) return false;
+
+        if (navigator.clipboard && window.isSecureContext) {
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch (error) {
+                // Continue to fallback.
+            }
+        }
+
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        let copied = false;
+        try {
+            copied = document.execCommand('copy');
+        } catch (error) {
+            copied = false;
+        }
+
+        document.body.removeChild(textarea);
+        return copied;
+    }
+
     const copyBtn = document.getElementById('copyPublicBtn');
     if (copyBtn) {
         copyBtn.addEventListener('click', async () => {
             const url = copyBtn.getAttribute('data-public-url');
             if (!url) return;
 
-            try {
-                await navigator.clipboard.writeText(url);
+            const copied = await copyText(url);
+            if (copied) {
                 const prev = copyBtn.textContent;
                 copyBtn.textContent = 'Copied!';
+                showToast('Link copied!');
                 setTimeout(() => {
                     copyBtn.textContent = prev;
                 }, 1200);
-            } catch {
+            } else {
                 window.prompt('Copy this link:', url);
             }
         });

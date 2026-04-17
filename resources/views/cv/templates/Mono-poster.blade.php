@@ -2,249 +2,443 @@
 
 @section('content')
 @php
-	$name = data_get($cv, 'personal_name') ?: (data_get($cv, 'user.name') ?? 'CV');
-	$email = data_get($cv, 'personal_email') ?: (data_get($cv, 'user.email') ?? '');
-	$title = data_get($cv, 'title');
-	$summary = data_get($cv, 'summary');
-	$phone = data_get($cv, 'personal_phone');
-	$location = data_get($cv, 'personal_location');
-	$linkedin = data_get($cv, 'personal_linkedin');
-	$website = data_get($cv, 'personal_website');
-	$thumbMode = ($layout === 'layouts.thumb');
+    // VARIABEL DATA
+    $name = data_get($cv, 'personal_name') ?: (data_get($cv, 'user.name') ?? 'Henry Madison');
+    $email = data_get($cv, 'personal_email') ?: (data_get($cv, 'user.email') ?? 'info@yourmail.com');
+    $title = data_get($cv, 'title') ?: 'Graphic Designer';
+    $summary = data_get($cv, 'summary');
+    $phone = data_get($cv, 'personal_phone') ?: '+0000 1234 5678';
+    $location = data_get($cv, 'personal_location') ?: 'New York City - 000';
+    $linkedin = data_get($cv, 'personal_linkedin');
+    $website = data_get($cv, 'personal_website');
+    $thumbMode = ($layout === 'layouts.thumb');
 
-	$accent = strtoupper((string) data_get($cv, 'accent_color', '#7C3AED'));
-	$themes = [
-		'#7C3AED' => ['accent' => '#7C3AED', 'deep' => '#4C1D95', 'soft' => '#EDE9FE'],
-		'#0EA5A4' => ['accent' => '#0EA5A4', 'deep' => '#0F766E', 'soft' => '#CCFBF1'],
-		'#3B82F6' => ['accent' => '#3B82F6', 'deep' => '#1D4ED8', 'soft' => '#DBEAFE'],
-		'#EA580C' => ['accent' => '#EA580C', 'deep' => '#C2410C', 'soft' => '#FFEDD5'],
-		'#334155' => ['accent' => '#334155', 'deep' => '#0F172A', 'soft' => '#E2E8F0'],
-		'#166534' => ['accent' => '#166534', 'deep' => '#14532D', 'soft' => '#DCFCE7'],
-		'#BE123C' => ['accent' => '#BE123C', 'deep' => '#9F1239', 'soft' => '#FFE4E6'],
-	];
-	$tone = $themes[$accent] ?? $themes['#7C3AED'];
+    $accent = '#000000'; 
+    $themes = [
+        '#000000' => ['accent' => '#000000', 'deep' => '#000000', 'soft' => '#f3f3f3'],
+    ];
+    $tone = $themes['#000000'];
 
-	$experiences = collect(data_get($cv, 'experiences', []));
-	$educations = collect(data_get($cv, 'educations', []));
-	$skills = collect(data_get($cv, 'skills', []));
+    $experiences = collect(data_get($cv, 'experiences', []));
+    $educations = collect(data_get($cv, 'educations', []));
+    $skills = collect(data_get($cv, 'skills', []));
+    // Asumsi ada field languages di DB, jika tidak gunakan array kosong
+    $languages = collect(data_get($cv, 'languages', []));
 
-	$placeholderFlags = collect(data_get($cv, 'preview_placeholder_flags', []));
-	$isPlaceholder = fn (string $key): bool => (bool) $placeholderFlags->get($key, false);
-	$itemPlaceholder = fn ($item, string $field): bool => (bool) data_get($item, '_placeholder.'.$field, false);
+    $placeholderFlags = collect(data_get($cv, 'preview_placeholder_flags', []));
+    $isPlaceholder = fn (string $key): bool => (bool) $placeholderFlags->get($key, false);
+    $itemPlaceholder = fn ($item, string $field): bool => (bool) data_get($item, '_placeholder.'.$field, false);
 @endphp
 
+<!-- Load Icons untuk Social Media & UI -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Libre+Baskerville:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Lato:wght@300;400;700&display=swap');
 
 .cv-paper {
-	--ac: {{ $tone['accent'] }};
-	--ac-deep: {{ $tone['deep'] }};
-	--ac-soft: {{ $tone['soft'] }};
+    --ac: {{ $tone['accent'] }};
+    --ac-deep: {{ $tone['deep'] }};
+    --ac-soft: {{ $tone['soft'] }};
+    --font-head: 'Montserrat', sans-serif;
+    --font-body: 'Lato', sans-serif;
 }
 
-.cv-poster {
-	font-family: 'Libre Baskerville', serif;
-	color: #0f172a;
-	font-size: 12.4px;
-	line-height: 1.68;
+.cv-henry {
+    font-family: var(--font-body);
+    color: #333;
+    font-size: 14px;
+    line-height: 1.6;
+    display: grid;
+    grid-template-columns: 32% 1fr; /* 32% Sidebar Kiri */
+    min-height: {{ $thumbMode ? '100%' : '1123px' }};
+    background: #fff;
 }
 
-.cv-poster .cv-placeholder { opacity: .54; font-style: italic; }
-
-.cv-poster-top {
-	border: 2px solid #0f172a;
-	position: relative;
-	padding: 16px 14px 13px;
+.cv-henry,
+.cv-henry * {
+    min-width: 0;
 }
 
-.cv-poster-tag {
-	position: absolute;
-	top: -10px;
-	left: 12px;
-	background: #fff;
-	padding: 0 6px;
-	font-family: 'Oswald', sans-serif;
-	text-transform: uppercase;
-	letter-spacing: .16em;
-	color: var(--ac-deep);
-	font-size: 10px;
+.cv-henry :where(h1, h2, h3, h4, p, span, div, li, a) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
-.cv-poster-name {
-	margin: 0;
-	font-family: 'Oswald', sans-serif;
-	font-size: 40px;
-	line-height: .96;
-	letter-spacing: .02em;
-	text-transform: uppercase;
+/* --- LEFT SIDEBAR (GELAP) --- */
+.cv-sidebar-left {
+    background-color: var(--ac-deep);
+    color: #fff;
+    padding: {{ $thumbMode ? '30px 20px' : '50px 30px' }};
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: visible;
 }
 
-.cv-poster-role {
-	margin-top: 8px;
-	font-family: 'Oswald', sans-serif;
-	font-size: 13px;
-	text-transform: uppercase;
-	letter-spacing: .12em;
-	color: var(--ac-deep);
+/* Nama Besar di Kiri */
+.cv-henry-name {
+    font-family: var(--font-head);
+    font-size: {{ $thumbMode ? '32px' : '42px' }};
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
 }
 
-.cv-poster-contact {
-	margin-top: 9px;
-	font-size: 11.2px;
-	color: #334155;
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px 12px;
+.cv-henry-role {
+    font-family: var(--font-head);
+    font-size: 14px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 30px;
+    color: rgba(255,255,255,0.8);
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
 }
 
-.cv-poster-grid {
-	margin-top: 13px;
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 12px;
+/* Social Icons */
+.cv-socials {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 40px;
 }
 
-.cv-card {
-	border: 1px solid #dbe3ec;
-	padding: 10px 11px;
-	background: linear-gradient(180deg, #fff, #f8fafc);
+.cv-socials a {
+    color: #fff;
+    font-size: 20px;
+    text-decoration: none;
+    transition: color 0.3s;
 }
 
-.cv-card-title {
-	margin: 0 0 8px;
-	font-family: 'Oswald', sans-serif;
-	font-size: 13px;
-	letter-spacing: .1em;
-	text-transform: uppercase;
-	color: var(--ac-deep);
+.cv-socials a:hover {
+    color: var(--ac-soft);
 }
 
-.cv-card-summary {
-	margin: 0;
-	font-size: 11.8px;
-	line-height: 1.78;
-	color: #334155;
+/* Section Headers di Sidebar */
+.cv-sidebar-section-title {
+    font-family: var(--font-head);
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(255,255,255,0.2);
 }
 
-.cv-list-item {
-	margin-bottom: 9px;
-	padding-bottom: 9px;
-	border-bottom: 1px dashed #dbe3ec;
+/* Contact Items */
+.cv-contact-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 15px;
+    font-size: 13px;
 }
 
-.cv-list-item:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
-
-.cv-list-head {
-	display: flex;
-	justify-content: space-between;
-	gap: 10px;
-	align-items: baseline;
+.cv-contact-item i {
+    font-size: 16px;
+    color: var(--ac-soft); /* Icon pakai warna soft/terang */
+    margin-top: 2px;
 }
 
-.cv-list-role {
-	margin: 0;
-	font-family: 'Oswald', sans-serif;
-	font-size: 14px;
-	font-weight: 600;
-	letter-spacing: .03em;
+.cv-contact-text {
+    word-break: break-word;
 }
 
-.cv-list-date {
-	font-size: 10px;
-	color: var(--ac-deep);
-	font-family: 'Oswald', sans-serif;
-	letter-spacing: .04em;
+/* Language List */
+.cv-lang-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.cv-list-sub {
-	font-size: 11px;
-	color: #64748b;
-	margin-top: 2px;
+.cv-lang-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
 }
 
-.cv-list-desc {
-	margin-top: 5px;
-	font-size: 11.4px;
-	color: #334155;
+.cv-lang-bar-bg {
+    width: 60%;
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+    margin-top: 6px;
 }
 
-.cv-skill-row {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 7px;
+.cv-lang-bar-fill {
+    height: 100%;
+    background: #fff;
+    border-radius: 2px;
 }
 
-.cv-skill-badge {
-	font-family: 'Oswald', sans-serif;
-	font-size: 10px;
-	letter-spacing: .07em;
-	text-transform: uppercase;
-	color: #0f172a;
-	border: 1px solid var(--ac);
-	background: var(--ac-soft);
-	padding: 3px 8px;
+
+/* --- RIGHT MAIN CONTENT (PUTIH) --- */
+.cv-main-right {
+    padding: {{ $thumbMode ? '30px 35px' : '50px 40px' }};
+    background: #ffffff;
 }
 
-@media (max-width: 760px) {
-	.cv-poster-grid { grid-template-columns: 1fr; }
+/* Section Headers di Kanan */
+.cv-main-section-title {
+    font-family: var(--font-head);
+    font-size: 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--ac-deep);
+    margin-bottom: 25px;
+    margin-top: {{ $thumbMode ? '25px' : '40px' }}; /* Jarak antar section */
+    border-bottom: 3px solid var(--ac-soft);
+    padding-bottom: 10px;
+    display: block;
+    width: 100%;
+}
+
+.cv-main-section-title:first-child {
+    margin-top: 0;
+}
+
+/* Profile Text */
+.cv-profile-text {
+    font-size: 14px;
+    color: #4b5563;
+    line-height: 1.8;
+}
+
+/* Experience & Education Items */
+.cv-exp-item {
+    margin-bottom: 25px;
+}
+
+.cv-exp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    row-gap: 6px;
+    margin-bottom: 5px;
+}
+
+.cv-exp-role {
+    font-family: var(--font-head);
+    font-size: 16px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.cv-exp-date {
+    font-size: 13px;
+    color: var(--ac-deep);
+    font-weight: 600;
+    font-style: italic;
+    text-align: right;
+    max-width: 100%;
+}
+
+.cv-exp-sub {
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.cv-exp-desc {
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.6;
+}
+
+/* Expertise / Skills Tags */
+.cv-expertise-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.cv-skill-tag {
+    background: var(--ac-soft);
+    color: var(--ac-deep);
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-head);
+    text-transform: uppercase;
+}
+
+/* Placeholder Helper */
+.cv-henry .cv-placeholder { opacity: 0.4; font-style: italic; }
+
+/* Mobile Responsive */
+@media screen and (max-width: {{ $thumbMode ? '0px' : '760px' }}) {
+    .cv-henry {
+        grid-template-columns: 1fr;
+    }
+    .cv-sidebar-left {
+        padding: 30px 20px;
+        text-align: center;
+    }
+    .cv-contact-item {
+        justify-content: center;
+    }
+    .cv-lang-item {
+        justify-content: center;
+    }
+    .cv-socials {
+        justify-content: center;
+    }
+    .cv-main-right {
+        padding: 30px 20px;
+    }
 }
 </style>
 
-<div class="cv-poster">
-	<header class="cv-poster-top">
-		<div class="cv-poster-tag">Curriculum Vitae</div>
-		<h1 class="cv-poster-name {{ $isPlaceholder('personal_name') ? 'cv-placeholder' : '' }}">{{ $thumbMode ? Str::limit($name, 18) : $name }}</h1>
-		@if($title)<div class="cv-poster-role {{ $isPlaceholder('title') ? 'cv-placeholder' : '' }}">{{ $title }}</div>@endif
-		<div class="cv-poster-contact">
-			@if($email)<span class="{{ $isPlaceholder('personal_email') ? 'cv-placeholder' : '' }}">{{ $email }}</span>@endif
-			@if($phone)<span>{{ $phone }}</span>@endif
-			@if($location)<span>{{ $location }}</span>@endif
-			@if($linkedin)<span>{{ $linkedin }}</span>@endif
-			@if($website)<span>{{ $website }}</span>@endif
-		</div>
-	</header>
+<div class="cv-henry">
+    
+    <!-- SIDEBAR KIRI (GELAP) -->
+    <aside class="cv-sidebar-left">
+        <!-- Nama & Role -->
+        <h1 class="cv-henry-name {{ $isPlaceholder('personal_name') ? 'cv-placeholder' : '' }}">{{ $thumbMode ? Str::limit($name, 20) : $name }}</h1>
+        <div class="cv-henry-role {{ $isPlaceholder('title') ? 'cv-placeholder' : '' }}">{{ $title }}</div>
 
-	<div class="cv-poster-grid">
-		<section class="cv-card" style="grid-column: 1 / -1;">
-			<h2 class="cv-card-title">Summary</h2>
-			<p class="cv-card-summary {{ $isPlaceholder('summary') ? 'cv-placeholder' : '' }}">{{ $thumbMode ? Str::limit((string) $summary, 230) : $summary }}</p>
-		</section>
+        <!-- Social Icons -->
+        <div class="cv-socials">
+            @if($linkedin)
+                <a href="{{ $linkedin }}" title="LinkedIn"><i class="bi bi-linkedin"></i></a>
+            @endif
+            @if($website)
+                <a href="{{ $website }}" title="Website"><i class="bi bi-globe"></i></a>
+            @endif
+            @if(!$linkedin && !$website)
+                <!-- Placeholder Icons -->
+                <span class="cv-placeholder"><i class="bi bi-linkedin"></i></span>
+                <span class="cv-placeholder"><i class="bi bi-behance"></i></span>
+                <span class="cv-placeholder"><i class="bi bi-dribbble"></i></span>
+            @endif
+        </div>
 
-		<section class="cv-card">
-			<h2 class="cv-card-title">Experience</h2>
-			@foreach(($thumbMode ? $experiences->take(3) : $experiences) as $exp)
-				<article class="cv-list-item">
-					<div class="cv-list-head">
-						<p class="cv-list-role {{ $itemPlaceholder($exp, 'position') ? 'cv-placeholder' : '' }}">{{ data_get($exp, 'position') }}</p>
-						<span class="cv-list-date {{ ($itemPlaceholder($exp, 'start_date') || $itemPlaceholder($exp, 'end_date')) ? 'cv-placeholder' : '' }}">{{ data_get($exp, 'start_date') }}{{ data_get($exp, 'end_date') ? ' - '.data_get($exp, 'end_date') : ' - Present' }}</span>
-					</div>
-					<div class="cv-list-sub {{ $itemPlaceholder($exp, 'company') ? 'cv-placeholder' : '' }}">{{ data_get($exp, 'company') }}</div>
-					@if(data_get($exp, 'description'))
-						<div class="cv-list-desc {{ $itemPlaceholder($exp, 'description') ? 'cv-placeholder' : '' }}">{{ $thumbMode ? Str::limit((string) data_get($exp, 'description'), 150) : data_get($exp, 'description') }}</div>
-					@endif
-				</article>
-			@endforeach
-		</section>
+        <!-- Contact Section -->
+        <div class="cv-sidebar-section-title">Contact</div>
+        @if($email)
+        <div class="cv-contact-item">
+            <i class="bi bi-envelope"></i>
+            <div class="cv-contact-text {{ $isPlaceholder('personal_email') ? 'cv-placeholder' : '' }}">{{ $email }}</div>
+        </div>
+        @endif
+        @if($phone)
+        <div class="cv-contact-item">
+            <i class="bi bi-telephone"></i>
+            <div class="cv-contact-text">{{ $phone }}</div>
+        </div>
+        @endif
+        @if($location)
+        <div class="cv-contact-item">
+            <i class="bi bi-geo-alt"></i>
+            <div class="cv-contact-text">{{ $location }}</div>
+        </div>
+        @endif
 
-		<section class="cv-card">
-			<h2 class="cv-card-title">Education</h2>
-			@foreach($educations as $edu)
-				<article class="cv-list-item">
-					<div class="cv-list-head">
-						<p class="cv-list-role {{ $itemPlaceholder($edu, 'school') ? 'cv-placeholder' : '' }}">{{ data_get($edu, 'school') }}</p>
-						<span class="cv-list-date {{ $itemPlaceholder($edu, 'year') ? 'cv-placeholder' : '' }}">{{ data_get($edu, 'year') }}</span>
-					</div>
-					<div class="cv-list-sub {{ $itemPlaceholder($edu, 'degree') ? 'cv-placeholder' : '' }}">{{ data_get($edu, 'degree') }}</div>
-				</article>
-			@endforeach
+        <!-- Languages Section -->
+        <div class="cv-sidebar-section-title" style="margin-top: 40px;">Languages</div>
+        <div class="cv-lang-list">
+            <!-- Menggunakan data languages jika ada, atau placeholder -->
+            @if($languages->isNotEmpty())
+                @foreach($languages as $lang)
+                    <div class="cv-lang-item">
+                        <span>{{ data_get($lang, 'name') }}</span>
+                    </div>
+                @endforeach
+            @else
+                <!-- Placeholder data sesuai request (English, Urdu, Spanish) -->
+                <div class="cv-lang-item">
+                    <span>English</span>
+                </div>
+                <div class="cv-lang-item">
+                    <span>Urdu</span>
+                </div>
+                <div class="cv-lang-item">
+                    <span>Spanish</span>
+                </div>
+            @endif
+        </div>
+    </aside>
 
-			<h2 class="cv-card-title" style="margin-top:12px;">Skills</h2>
-			<div class="cv-skill-row">
-				@foreach($skills as $skill)
-					<span class="cv-skill-badge {{ $itemPlaceholder($skill, 'name') ? 'cv-placeholder' : '' }}">{{ data_get($skill, 'name') }}</span>
-				@endforeach
-			</div>
-		</section>
-	</div>
+    <!-- MAIN KANAN (PUTIH) -->
+    <main class="cv-main-right">
+        
+        <!-- Profile Section -->
+        @if($summary)
+        <h2 class="cv-main-section-title">Profile</h2>
+        <p class="cv-profile-text {{ $isPlaceholder('summary') ? 'cv-placeholder' : '' }}">
+            {{ $thumbMode ? Str::limit((string) $summary, 300) : $summary }}
+        </p>
+        @endif
+
+        <!-- Experience Section -->
+        <h2 class="cv-main-section-title">Experience</h2>
+        @foreach(($thumbMode ? $experiences->take(3) : $experiences) as $exp)
+            <article class="cv-exp-item">
+                <div class="cv-exp-header">
+                    <div class="cv-exp-role {{ $itemPlaceholder($exp, 'position') ? 'cv-placeholder' : '' }}">
+                        {{ data_get($exp, 'position') }}
+                    </div>
+                    <div class="cv-exp-date {{ ($itemPlaceholder($exp, 'start_date') || $itemPlaceholder($exp, 'end_date')) ? 'cv-placeholder' : '' }}">
+                        {{ data_get($exp, 'start_date') }} {{ data_get($exp, 'end_date') ? '- ' . data_get($exp, 'end_date') : '- Present' }}
+                    </div>
+                </div>
+                <div class="cv-exp-sub {{ $itemPlaceholder($exp, 'company') ? 'cv-placeholder' : '' }}">
+                    {{ data_get($exp, 'company') }}
+                </div>
+                @if(data_get($exp, 'description'))
+                <div class="cv-exp-desc {{ $itemPlaceholder($exp, 'description') ? 'cv-placeholder' : '' }}">
+                    {{ $thumbMode ? Str::limit((string) data_get($exp, 'description'), 200) : data_get($exp, 'description') }}
+                </div>
+                @endif
+            </article>
+        @endforeach
+
+        <!-- Education Section -->
+        <h2 class="cv-main-section-title">Education</h2>
+        @foreach($educations as $edu)
+            <article class="cv-exp-item">
+                <div class="cv-exp-header">
+                    <div class="cv-exp-role {{ $itemPlaceholder($edu, 'school') ? 'cv-placeholder' : '' }}">
+                        {{ data_get($edu, 'school') }}
+                    </div>
+                    <div class="cv-exp-date {{ $itemPlaceholder($edu, 'year') ? 'cv-placeholder' : '' }}">
+                        {{ data_get($edu, 'year') }}
+                    </div>
+                </div>
+                <div class="cv-exp-sub {{ $itemPlaceholder($edu, 'degree') ? 'cv-placeholder' : '' }}">
+                    {{ data_get($edu, 'degree') }}
+                </div>
+            </article>
+        @endforeach
+
+        <!-- Expertise Section (Skills) -->
+        <h2 class="cv-main-section-title">Expertise</h2>
+        <div class="cv-expertise-list">
+            @foreach($skills as $skill)
+                <span class="cv-skill-tag {{ $itemPlaceholder($skill, 'name') ? 'cv-placeholder' : '' }}">
+                    {{ data_get($skill, 'name') }}
+                </span>
+            @endforeach
+            <!-- Fallback jika kosong, agar tampilan sesuai request -->
+            @if($skills->isEmpty())
+                <span class="cv-skill-tag cv-placeholder">Premiere Pro</span>
+                <span class="cv-skill-tag cv-placeholder">After Effect</span>
+                <span class="cv-skill-tag cv-placeholder">Photoshop</span>
+                <span class="cv-skill-tag cv-placeholder">Illustrator</span>
+            @endif
+        </div>
+
+    </main>
 </div>
 @endsection

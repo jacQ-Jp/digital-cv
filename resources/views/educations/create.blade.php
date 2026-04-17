@@ -2,7 +2,7 @@
 
 @section('content')
 @php
-    $thumb = $cv->template?->thumbnail ? asset('storage/'.$cv->template->thumbnail) : null;
+    $thumb = $cv->template?->thumbnailPreviewUrl();
 @endphp
 
 <style>

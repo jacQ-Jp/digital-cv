@@ -4,6 +4,8 @@ export const PersonalStep = {
     modelValue: { type: Object, required: true },
     errors: { type: Object, default: () => ({}) },
     saving: { type: Boolean, default: false },
+    photoEnabled: { type: Boolean, default: true },
+    accentEnabled: { type: Boolean, default: true },
   },
   emits: ['update:model-value', 'remove-photo'],
   data() {
@@ -31,6 +33,11 @@ export const PersonalStep = {
       return current === hex;
     },
     onPhotoChange(event) {
+      if (!this.photoEnabled) {
+        event.target.value = '';
+        return;
+      }
+
       const file = event.target.files?.[0] || null;
       this.updateField('photoFile', file);
     },
@@ -64,7 +71,7 @@ export const PersonalStep = {
         <div class="text-danger small" v-if="errors.summary">{{ errors.summary }}</div>
       </div>
 
-      <div class="mb-3">
+      <div class="mb-3" v-if="accentEnabled">
         <label class="form-label">Template Accent Color</label>
         <div class="d-flex flex-wrap gap-2">
           <button
@@ -91,10 +98,18 @@ export const PersonalStep = {
         <div class="small text-muted mt-2">Warna aktif: <strong>{{ modelValue.accent_color || '#7C3AED' }}</strong>. Berlaku untuk live preview, halaman publik, dan PDF.</div>
       </div>
 
+      <div class="mb-3" v-else>
+        <label class="form-label">Template Accent Color</label>
+        <div class="small text-muted">Template ini menggunakan warna bawaan sehingga pengaturan warna tidak tersedia.</div>
+      </div>
+
       <div class="mb-3">
         <label class="form-label">Photo</label>
-        <input type="file" class="form-control" accept="image/*" @change="onPhotoChange" />
-        <div class="d-flex gap-2 mt-2" v-if="modelValue.photo_url">
+        <input type="file" class="form-control" accept="image/*" @change="onPhotoChange" :disabled="!photoEnabled" />
+        <div class="small text-muted mt-2" v-if="!photoEnabled">
+          Template ini tidak menggunakan foto, jadi upload foto dinonaktifkan.
+        </div>
+        <div class="d-flex gap-2 mt-2" v-if="photoEnabled && modelValue.photo_url">
           <img :src="modelValue.photo_url" alt="Photo" style="width:56px;height:56px;border-radius:8px;object-fit:cover;border:1px solid #e2e8f0;" />
           <button type="button" class="btn btn-sm btn-outline-danger" @click="$emit('remove-photo')" :disabled="saving">Remove Photo</button>
         </div>

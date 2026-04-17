@@ -79,6 +79,17 @@ class CvController extends Controller
         return view($this->tplView($cv->template_slug), ['cv' => $cv, 'layout' => 'layouts.render']);
     }
 
+    public function thumb(Cv $cv)
+    {
+        $this->own($cv);
+        $cv->load(['experiences', 'educations', 'skills', 'user']);
+
+        return view($this->tplView($cv->template_slug), [
+            'cv' => $cv,
+            'layout' => 'layouts.thumb',
+        ]);
+    }
+
     public function publicByUuid($token)
     {
         $cv = Cv::where('public_uuid', $token)->where('status', 'published')->firstOrFail();
@@ -86,18 +97,54 @@ class CvController extends Controller
         return view($this->tplView($cv->template_slug), ['cv' => $cv, 'layout' => 'layouts.render']);
     }
 
-    public function togglePublish(Cv $cv)
+    public function togglePublish(Request $request, Cv $cv)
     {
         $this->own($cv);
+
         if ($cv->status === 'published') {
             $cv->update(['status' => 'draft']);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => $cv->status,
+                    'public_uuid' => $cv->public_uuid,
+                    'public_url' => $cv->public_uuid
+                        ? route('cvs.public', ['token' => $cv->public_uuid])
+                        : null,
+                    'message' => 'CV ditarik sebagai draft.',
+                ]);
+            }
+
             return back()->with('success', 'CV ditarik sebagai draft.');
         }
+
         $errors = $cv->publishingErrors();
-        if (!empty($errors)) return back()->withErrors($errors);
+        if (!empty($errors)) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Data CV belum lengkap untuk dipublikasikan.',
+                    'errors' => $errors,
+                ], 422);
+            }
+
+            return back()->withErrors($errors);
+        }
+
         if (empty($cv->public_uuid)) $cv->public_uuid = Str::uuid()->toString();
         $cv->status = 'published';
         $cv->save();
+
+        $publicUrl = route('cvs.public', ['token' => $cv->public_uuid]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => $cv->status,
+                'public_uuid' => $cv->public_uuid,
+                'public_url' => $publicUrl,
+                'message' => 'CV berhasil dipublikasikan.',
+            ]);
+        }
+
         return back()->with('success', 'CV berhasil dipublikasikan.');
     }
 

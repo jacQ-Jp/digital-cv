@@ -73,6 +73,16 @@
 
     .cv-modern .cv-placeholder { opacity: .5; font-style: italic; }
 
+    .cv-modern,
+    .cv-modern * {
+        min-width: 0;
+    }
+
+    .cv-modern :where(h1, h2, h3, h4, p, span, div, li, a) {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
     /* === SIDEBAR (Left) === */
     .cv-sidebar {
         width: 32%;
@@ -198,11 +208,13 @@
 
     .cv-job-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
     .cv-job-title { font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 700; color: #1e293b; margin: 0; }
-    .cv-job-date { font-size: 10px; font-weight: 600; color: var(--ac); background: var(--ac-soft); padding: 2px 6px; border-radius: 3px; }
+    .cv-job-date { font-size: 10px; font-weight: 600; color: var(--ac); background: var(--ac-soft); padding: 2px 6px; border-radius: 3px; max-width: 100%; text-align: right; }
     .cv-job-company { font-weight: 600; font-size: 11px; color: #64748b; margin-bottom: 8px; }
     .cv-job-desc { font-size: 11px; color: #475569; text-align: justify; }
 
-    @media (max-width: 760px) {
+    .cv-job-header { flex-wrap: wrap; row-gap: 6px; }
+
+    @media screen and (max-width: {{ $thumbMode ? '0px' : '760px' }}) {
         .cv-modern { flex-direction: column; }
         .cv-sidebar { width: 100%; padding: 30px; }
         .cv-main { width: 100%; padding: 30px; }
@@ -263,7 +275,7 @@
         <!-- Header -->
         <header>
             <h1 class="cv-header-name {{ $isPlaceholder('personal_name') ? 'cv-placeholder' : '' }}">
-                {{ $thumbMode ? Str::limit($name, 30) : $name }}
+                {{ $thumbMode ? Str::limit($name, 38) : $name }}
             </h1>
             @if($title)
                 <p class="cv-header-title {{ $isPlaceholder('title') ? 'cv-placeholder' : '' }}">{{ $title }}</p>
@@ -282,7 +294,7 @@
         @if($experiences->isNotEmpty())
         <section class="cv-section">
             <h3 class="cv-main-heading">Work Experience</h3>
-            @foreach(($thumbMode ? $experiences->take(3) : $experiences) as $job)
+            @foreach(($thumbMode ? $experiences->take(4) : $experiences) as $job)
                 <div class="cv-job">
                     <div class="cv-job-header">
                         <h4 class="cv-job-title {{ $itemPlaceholder($job, 'position') ? 'cv-placeholder' : '' }}">
@@ -297,7 +309,7 @@
                     </div>
                     @if(data_get($job, 'description'))
                         <div class="cv-job-desc {{ $itemPlaceholder($job, 'description') ? 'cv-placeholder' : '' }}">
-                            {{ $thumbMode ? Str::limit((string) data_get($job, 'description'), 180) : data_get($job, 'description') }}
+                            {{ $thumbMode ? Str::limit((string) data_get($job, 'description'), 230) : data_get($job, 'description') }}
                         </div>
                     @endif
                 </div>

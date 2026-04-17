@@ -106,52 +106,116 @@
 
     {{-- Minimal Bootstrap via CDN for basic CRUD UI --}}
     @if(! $isCvRender)
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+            :root {
+                --app-bg: #f6f7fb;
+                --app-text: #22304a;
+                --app-muted: #6e7f9c;
+                --app-card: rgba(255, 255, 255, 0.92);
+                --app-card-border: rgba(156, 176, 206, 0.28);
+                --app-accent: #1fb6c9;
+                --app-accent-soft: #dff7fb;
+                --app-accent-warm: #ff8a65;
+            }
+
+            body.app-light-body {
+                margin: 0;
+                min-height: 100vh;
+                background:
+                    radial-gradient(900px 460px at 5% -10%, rgba(31, 182, 201, 0.16), transparent 62%),
+                    radial-gradient(780px 420px at 95% 0%, rgba(255, 138, 101, 0.12), transparent 60%),
+                    var(--app-bg);
+                color: var(--app-text);
+                font-family: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
+                overflow-x: hidden;
+            }
+
+            body.app-light-body::before {
+                content: '';
+                position: fixed;
+                inset: 0;
+                pointer-events: none;
+                opacity: 0.2;
+                background-image:
+                    linear-gradient(rgba(130, 148, 184, 0.12) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(130, 148, 184, 0.12) 1px, transparent 1px);
+                background-size: 34px 34px;
+                z-index: 0;
+            }
+
+            body.app-light-body > * {
+                position: relative;
+                z-index: 1;
+            }
+
+            body.app-light-body .card {
+                background: var(--app-card);
+                border: 1px solid var(--app-card-border);
+                border-radius: 16px;
+                box-shadow: 0 20px 30px -26px rgba(26, 40, 66, 0.45);
+            }
+
+            body.app-light-body .btn {
+                transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
+            }
+
+            body.app-light-body .btn:hover {
+                transform: translateY(-1px);
+            }
+
+            body.app-light-body .btn-primary {
+                background: linear-gradient(95deg, var(--app-accent), #00a2be);
+                border-color: #00a2be;
+                box-shadow: 0 12px 24px -18px rgba(0, 162, 190, 0.7);
+            }
+
+            body.app-light-body .btn-primary:hover {
+                filter: brightness(1.05);
+            }
+
+            body.app-light-body .form-control,
+            body.app-light-body .form-select {
+                border-color: rgba(156, 176, 206, 0.4);
+                background-color: #fff;
+                color: var(--app-text);
+            }
+
+            body.app-light-body .form-control:focus,
+            body.app-light-body .form-select:focus {
+                border-color: rgba(31, 182, 201, 0.7);
+                box-shadow: 0 0 0 0.2rem rgba(31, 182, 201, 0.18);
+            }
+
+            @keyframes appFadeUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            body.app-light-body .page-animate {
+                animation: appFadeUp 0.45s ease both;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                body.app-light-body .btn,
+                body.app-light-body .page-animate {
+                    transition: none !important;
+                    animation: none !important;
+                }
+            }
+        </style>
     @endif
 </head>
-<body class="{{ $isCvRender ? 'cv-render-body' : '' }}">
-@if(! $isCvRender)
-<nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom mb-4">
-    <div class="container">
-        <a class="navbar-brand" href="{{ url('/') }}">{{ config('app.name', 'Laravel') }}</a>
-
-        @auth
-            <form method="POST" action="{{ route('cv-builder.templates.save') }}" class="ms-3">
-                @csrf
-                <input type="hidden" name="redirect_to" value="{{ request()->getRequestUri() }}" />
-                <select name="template_slug" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Template">
-                    @php($activeTemplates = \App\Models\Template::query()->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get())
-                    @php($selected = session('cv_builder.template_slug') ?? $activeTemplates->firstWhere('is_default', true)?->slug ?? $activeTemplates->first()?->slug)
-                    @foreach($activeTemplates as $tpl)
-                        <option value="{{ $tpl->slug }}" @selected($selected === $tpl->slug)>
-                            {{ $tpl->name }}@if($tpl->is_default) (default)@endif
-                        </option>
-                    @endforeach
-                </select>
-            </form>
-        @endauth
-
-        <div class="ms-auto d-flex gap-2">
-            @guest
-                <a class="btn btn-sm btn-outline-primary" href="{{ route('login') }}">Login</a>
-                <a class="btn btn-sm btn-primary" href="{{ route('register') }}">Register</a>
-            @endguest
-
-            @auth
-                @if(auth()->user()?->role?->slug === 'admin')
-                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.dashboard') }}">Admin</a>
-                @endif
-                <a class="btn btn-sm btn-outline-primary" href="{{ route('cvs.index') }}">Dashboard</a>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button class="btn btn-sm btn-outline-danger" type="submit">Logout</button>
-                </form>
-            @endauth
-        </div>
-    </div>
-</nav>
-@endif
-
+<body class="{{ $isCvRender ? 'cv-render-body' : 'app-light-body' }}">
 @yield('content')
 
 @if(! $isCvRender)

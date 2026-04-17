@@ -8,24 +8,14 @@
     $authEmail = auth()->user()?->email ?? 'email@example.com';
 
     $templateOptions = $templates->map(function ($tpl) {
-        $thumbnailPath = $tpl->thumbnail;
-        $thumbnailUrl = ($thumbnailPath && \Illuminate\Support\Facades\Storage::disk('public')->exists($thumbnailPath))
-            ? asset('storage/'.$thumbnailPath)
-            : null;
-
         return [
             'slug' => $tpl->slug,
             'name' => $tpl->name,
-            'thumbnail' => $thumbnailUrl,
+            'thumbnail' => $tpl->thumbnailPreviewUrl(),
         ];
     })->values();
 
-    $selectedThumbnailPath = $selectedTemplate?->thumbnail;
-    $defaultThumb = $selectedTemplate
-        ? (($selectedThumbnailPath && \Illuminate\Support\Facades\Storage::disk('public')->exists($selectedThumbnailPath))
-            ? asset('storage/'.$selectedThumbnailPath)
-            : null)
-        : null;
+    $defaultThumb = $selectedTemplate?->thumbnailPreviewUrl();
 @endphp
 
 <style>

@@ -57,6 +57,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/cvs/{cv}/wizard/pdf', [CvWizardController::class, 'downloadPdf'])->name('cvs.wizard.pdf');
 
     Route::get('/cvs/{cv}/render', [CvController::class, 'render'])->name('cvs.render');
+    Route::get('/cvs/{cv}/thumb', [CvController::class, 'thumb'])->name('cvs.thumb');
 
     // Advanced actions
     Route::patch('/cvs/{cv}/toggle-publish', [CvController::class, 'togglePublish'])->name('cvs.toggle-publish');

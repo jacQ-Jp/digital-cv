@@ -9,6 +9,18 @@
         body{margin:0;padding:0;background:#fff;overflow:hidden}
         .thumb-stage{position:relative;width:100%;height:100%;overflow:hidden;background:#fff}
         .cv-paper{transform-origin:top left;will-change:transform;overflow:hidden}
+        .cv-paper > .sheet{
+            max-width:100% !important;
+            min-height:100% !important;
+            margin:0 !important;
+            border-radius:0 !important;
+            box-shadow:none !important;
+        }
+        .cv-paper > .cv-modern,
+        .cv-paper > .cv-sidebar,
+        .cv-paper > .cv-poster{
+            min-height:100% !important;
+        }
     </style>
 </head>
 <body>

@@ -33,9 +33,10 @@
 
         <div class="mb-3">
             <label class="form-label">Thumbnail (JPG/PNG)</label>
-            @if($template->thumbnail)
+            @php($thumbnailUrl = $template->thumbnailPreviewUrl())
+            @if($thumbnailUrl)
                 <div class="mb-2">
-                    <img src="{{ asset('storage/'.$template->thumbnail) }}" alt="Thumbnail {{ $template->name }}" style="width:180px;max-width:100%;height:auto;border:1px solid #e2e8f0;border-radius:8px;">
+                    <img src="{{ $thumbnailUrl }}" alt="Thumbnail {{ $template->name }}" style="width:180px;max-width:100%;height:auto;border:1px solid #e2e8f0;border-radius:8px;">
                 </div>
             @endif
             <input type="file" name="thumbnail" class="form-control" accept="image/jpeg,image/png">

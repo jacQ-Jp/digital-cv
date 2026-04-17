@@ -18,6 +18,19 @@ use Throwable;
 
 class CvWizardController extends Controller
 {
+    private const PHOTO_ENABLED_TEMPLATE_SLUGS = [
+        'classic',
+        'modern',
+        'sidebar',
+    ];
+
+    private const ACCENT_ENABLED_TEMPLATE_SLUGS = [
+        'classic',
+        'modern',
+        'minimalist',
+        'minimal',
+    ];
+
     private const ACCENT_COLORS = [
         '#7C3AED',
         '#0EA5A4',
@@ -57,6 +70,8 @@ class CvWizardController extends Controller
     {
         $this->authorizeCv($cv);
 
+        $supportsPhoto = $this->templateSupportsPhoto($cv);
+
         $data = $request->validate([
             'title' => ['nullable', 'string', 'max:255'],
             'personal_name' => ['nullable', 'string', 'max:255'],
@@ -64,15 +79,15 @@ class CvWizardController extends Controller
             'summary' => ['nullable', 'string'],
             'accent_color' => ['nullable', 'string', 'max:7'],
             'remove_photo' => ['nullable', 'boolean'],
-            'photo' => ['nullable', 'image', 'max:2048'],
+            'photo' => $supportsPhoto ? ['nullable', 'image', 'max:2048'] : ['prohibited'],
         ]);
 
-        if (($data['remove_photo'] ?? false) && $cv->photo_path) {
+        if ($supportsPhoto && ($data['remove_photo'] ?? false) && $cv->photo_path) {
             Storage::disk('public')->delete($cv->photo_path);
             $cv->photo_path = null;
         }
 
-        if ($request->hasFile('photo')) {
+        if ($supportsPhoto && $request->hasFile('photo')) {
             if ($cv->photo_path) {
                 Storage::disk('public')->delete($cv->photo_path);
             }
@@ -344,6 +359,8 @@ class CvWizardController extends Controller
             'html' => $html,
             'template_slug' => $previewCv->template_slug,
             'resolved_slug' => $resolvedSlug,
+            'template_supports_photo' => $this->templateSupportsPhotoSlug($resolvedSlug),
+            'template_supports_accent' => $this->templateSupportsAccentSlug($resolvedSlug),
         ]);
     }
 
@@ -353,27 +370,95 @@ class CvWizardController extends Controller
 
         $cv->load(['user', 'template', 'experiences', 'educations', 'skills']);
 
-        $html = app(CvTemplateRenderer::class)
-            ->render($cv, ['previewMode' => true])
-            ->render();
+        $renderer = app(CvTemplateRenderer::class);
+        $resolvedView = $renderer->resolveView($cv);
+
+        $html = view($resolvedView, [
+            'cv' => $cv,
+            'previewMode' => true,
+            'layout' => 'layouts.pdf',
+        ])->render();
 
         try {
-            $pdf = Browsershot::html($html)
-                ->showBackground()
-                ->format('A4')
-                ->margins(10, 10, 10, 10)
-                ->pdf();
+            $pdf = $this->buildPdfBrowsershot($html)->pdf();
 
             return response($pdf, 200, [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'attachment; filename="cv-'.$cv->id.'.pdf"',
             ]);
         } catch (Throwable $exception) {
-            return response()->json([
-                'message' => 'PDF generation failed. Ensure Chromium/Node runtime is available.',
-                'error' => $exception->getMessage(),
-            ], 500);
+            report($exception);
+
+            return redirect()
+                ->route('cvs.render', $cv)
+                ->with('pdf_warning', 'PDF otomatis belum tersedia di runtime ini. Gunakan tombol Print / PDF sebagai fallback sementara.');
         }
+    }
+
+    private function buildPdfBrowsershot(string $html): Browsershot
+    {
+        $browsershot = Browsershot::html($html)
+            ->showBackground()
+            ->waitUntilNetworkIdle()
+            ->emulateMedia('screen')
+            ->format('A4')
+            ->margins(0, 0, 0, 0)
+            ->scale(1)
+            ->setOption('preferCSSPageSize', true)
+            ->addChromiumArguments([
+                'disable-dev-shm-usage',
+                'font-render-hinting=none',
+            ])
+            ->timeout(120);
+
+        $nodeBinary = $this->firstExistingPath([
+            (string) config('services.browsershot.node_binary', ''),
+            '/opt/homebrew/bin/node',
+            '/usr/local/bin/node',
+            '/usr/bin/node',
+        ]);
+        if ($nodeBinary) {
+            $browsershot->setNodeBinary($nodeBinary);
+        }
+
+        $npmBinary = $this->firstExistingPath([
+            (string) config('services.browsershot.npm_binary', ''),
+            '/opt/homebrew/bin/npm',
+            '/usr/local/bin/npm',
+            '/usr/bin/npm',
+        ]);
+        if ($npmBinary) {
+            $browsershot->setNpmBinary($npmBinary);
+        }
+
+        $chromePath = $this->firstExistingPath([
+            (string) config('services.browsershot.chrome_path', ''),
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+            '/Applications/Chromium.app/Contents/MacOS/Chromium',
+            '/usr/bin/google-chrome',
+            '/usr/bin/chromium-browser',
+        ]);
+        if ($chromePath) {
+            $browsershot->setChromePath($chromePath);
+        }
+
+        if ((bool) config('services.browsershot.no_sandbox', false)) {
+            $browsershot->noSandbox();
+        }
+
+        return $browsershot;
+    }
+
+    private function firstExistingPath(array $paths): ?string
+    {
+        foreach ($paths as $path) {
+            $candidate = trim((string) $path);
+            if ($candidate !== '' && is_file($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     private function authorizeCv(Cv $cv): void
@@ -390,6 +475,8 @@ class CvWizardController extends Controller
                 'summary' => $cv->summary,
                 'template_slug' => $cv->template_slug,
                 'template_name' => $cv->template?->name ?? $cv->template_slug,
+                'template_supports_photo' => $this->templateSupportsPhoto($cv),
+                'template_supports_accent' => $this->templateSupportsAccent($cv),
                 'status' => $cv->status,
                 'personal_name' => $cv->personal_name,
                 'personal_email' => $cv->personal_email,
@@ -470,7 +557,7 @@ class CvWizardController extends Controller
             'summary'
         );
 
-        if (array_key_exists('photo_url', $payload) && is_string($payload['photo_url']) && $payload['photo_url'] !== '') {
+        if ($this->templateSupportsPhoto($previewCv) && array_key_exists('photo_url', $payload) && is_string($payload['photo_url']) && $payload['photo_url'] !== '') {
             $previewCv->setAttribute('photo_preview_url', $payload['photo_url']);
         }
 
@@ -558,7 +645,8 @@ class CvWizardController extends Controller
             ],
         ];
 
-        $targetCount = max($items->count(), 1);
+        // Keep preview visually balanced on a full page even when user data is still sparse.
+        $targetCount = max($items->count(), 2);
         $result = collect();
 
         for ($index = 0; $index < $targetCount; $index++) {
@@ -591,7 +679,8 @@ class CvWizardController extends Controller
 
     private function applyEducationPlaceholders(Collection $items): Collection
     {
-        $targetCount = max($items->count(), 1);
+        // Keep preview visually balanced on a full page even when user data is still sparse.
+        $targetCount = max($items->count(), 2);
         $result = collect();
 
         for ($index = 0; $index < $targetCount; $index++) {
@@ -619,7 +708,8 @@ class CvWizardController extends Controller
 
     private function applySkillPlaceholders(Collection $items): Collection
     {
-        $targetCount = max($items->count(), 4);
+        // Keep preview visually balanced on a full page even when user data is still sparse.
+        $targetCount = max($items->count(), 6);
         $result = collect();
 
         for ($index = 0; $index < $targetCount; $index++) {
@@ -690,5 +780,51 @@ class CvWizardController extends Controller
         $placeholderFlags[$key] = true;
 
         return $placeholder;
+    }
+
+    private function templateSupportsPhoto(Cv $cv): bool
+    {
+        $slug = trim((string) $cv->template_slug);
+
+        if ($slug === '') {
+            try {
+                $resolvedView = app(CvTemplateRenderer::class)->resolveView($cv);
+                $slug = preg_replace('/^(cv\.)?templates\./', '', $resolvedView) ?: '';
+            } catch (Throwable) {
+                $slug = '';
+            }
+        }
+
+        return $this->templateSupportsPhotoSlug($slug);
+    }
+
+    private function templateSupportsPhotoSlug(?string $slug): bool
+    {
+        $normalized = Str::lower(trim((string) $slug));
+
+        return in_array($normalized, self::PHOTO_ENABLED_TEMPLATE_SLUGS, true);
+    }
+
+    private function templateSupportsAccent(Cv $cv): bool
+    {
+        $slug = trim((string) $cv->template_slug);
+
+        if ($slug === '') {
+            try {
+                $resolvedView = app(CvTemplateRenderer::class)->resolveView($cv);
+                $slug = preg_replace('/^(cv\.)?templates\./', '', $resolvedView) ?: '';
+            } catch (Throwable) {
+                $slug = '';
+            }
+        }
+
+        return $this->templateSupportsAccentSlug($slug);
+    }
+
+    private function templateSupportsAccentSlug(?string $slug): bool
+    {
+        $normalized = Str::lower(trim((string) $slug));
+
+        return in_array($normalized, self::ACCENT_ENABLED_TEMPLATE_SLUGS, true);
     }
 }
