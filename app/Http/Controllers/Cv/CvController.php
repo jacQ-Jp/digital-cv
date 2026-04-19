@@ -72,6 +72,47 @@ class CvController extends Controller
         return back()->with('success', 'CV berhasil dihapus.');
     }
 
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'cv_ids' => ['required', 'array', 'min:1'],
+            'cv_ids.*' => ['integer'],
+        ]);
+
+        $ids = collect($validated['cv_ids'])
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        $deletedCount = Cv::query()
+            ->where('user_id', auth()->id())
+            ->whereIn('id', $ids)
+            ->delete();
+
+        if ($deletedCount < 1) {
+            return back()->withErrors([
+                'bulk_delete' => 'Tidak ada CV valid yang dipilih untuk dihapus.',
+            ]);
+        }
+
+        return back()->with('success', $deletedCount . ' CV berhasil dihapus.');
+    }
+
+    public function destroyAll()
+    {
+        $deletedCount = Cv::query()
+            ->where('user_id', auth()->id())
+            ->delete();
+
+        if ($deletedCount < 1) {
+            return back()->withErrors([
+                'bulk_delete' => 'Tidak ada CV untuk dihapus.',
+            ]);
+        }
+
+        return back()->with('success', $deletedCount . ' CV berhasil dihapus.');
+    }
+
     public function render(Cv $cv)
     {
         $this->own($cv);

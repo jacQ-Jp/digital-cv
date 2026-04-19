@@ -41,6 +41,29 @@
         flex-wrap: wrap;
         gap: .5rem;
     }
+
+    .copy-toast {
+        position: fixed;
+        right: 1rem;
+        bottom: 1rem;
+        background: #0f172a;
+        color: #fff;
+        border-radius: 10px;
+        padding: 0.6rem 0.9rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        opacity: 0;
+        transform: translateY(12px);
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        z-index: 1100;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+    }
+
+    .copy-toast.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
 </style>
 
 <div class="container py-2">
@@ -185,6 +208,8 @@
     </div>
 </div>
 
+<div id="copyToast" class="copy-toast" aria-live="polite">Link copied!</div>
+
 <script>
 (() => {
     const statusInput = document.getElementById('finalStatusInput');
@@ -192,8 +217,57 @@
     const statusHint = document.getElementById('finalStatusHint');
     const publicHint = document.getElementById('publicLinkHint');
     const copyBtn = document.getElementById('copyPublicBtn');
+    const copyToast = document.getElementById('copyToast');
     const pdfBtn = document.getElementById('savePdfBtn');
     const reviewIframe = document.getElementById('finalReviewIframe');
+    let toastTimer = null;
+
+    const showCopyToast = (message) => {
+        if (!copyToast) return;
+
+        copyToast.textContent = message;
+        copyToast.classList.add('show');
+
+        if (toastTimer) {
+            clearTimeout(toastTimer);
+        }
+
+        toastTimer = setTimeout(() => {
+            copyToast.classList.remove('show');
+        }, 1500);
+    };
+
+    const copyText = async (text) => {
+        if (!text) return false;
+
+        if (navigator.clipboard && window.isSecureContext) {
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch {
+                // Continue to fallback
+            }
+        }
+
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        let copied = false;
+        try {
+            copied = document.execCommand('copy');
+        } catch {
+            copied = false;
+        }
+
+        document.body.removeChild(textarea);
+        return copied;
+    };
 
     const updateStatus = () => {
         const isPublic = statusInput?.value === 'published';
@@ -216,14 +290,16 @@
         const url = copyBtn.getAttribute('data-public-url');
         if (!url) return;
 
-        try {
-            await navigator.clipboard.writeText(url);
+        const copied = await copyText(url);
+        if (copied) {
             const prev = copyBtn.textContent;
             copyBtn.textContent = 'Copied!';
+            showCopyToast('Link copied!');
             setTimeout(() => {
                 copyBtn.textContent = prev;
             }, 1200);
-        } catch {
+        } else {
+            showCopyToast('Gagal copy link');
             window.prompt('Copy this link:', url);
         }
     });

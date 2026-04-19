@@ -9,8 +9,8 @@
         --tpl-border: rgba(0, 0, 0, 0.08);
         --tpl-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
         --tpl-shadow-hover: 0 20px 40px -5px rgba(0, 0, 0, 0.15);
-        --tpl-text: #1f2937;
-        --tpl-muted: #6b7280;
+        --tpl-text: #e5e7eb;
+        --tpl-muted: #9ca3af;
         --tpl-accent: #2563eb; /* Professional Blue */
         --tpl-accent-hover: #1d4ed8;
         
@@ -20,9 +20,9 @@
         --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    body {
-        /* Memastikan background luar bersih */
-        background-color: #f8fafc;
+    body.app-light-body {
+        background-color: #050505;
+        color: var(--tpl-text);
         font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         -webkit-font-smoothing: antialiased;
     }
@@ -31,9 +31,10 @@
     nav.navbar { display: none !important; }
 
     .cv-container {
-        max-width: 1280px;
+        max-width: 1320px;
         margin: 0 auto;
-        padding: 2rem 1.5rem 8rem;
+        padding: 2rem 1.5rem 12rem;
+        color: var(--tpl-text);
     }
 
     /* --- Header --- */
@@ -46,7 +47,7 @@
     .cv-header h1 {
         font-size: 2.2rem;
         font-weight: 800;
-        color: #111827;
+        color: #f8fafc;
         margin-bottom: 0.5rem;
         letter-spacing: -0.025em;
     }
@@ -60,7 +61,7 @@
     .cv-controls {
         display: flex;
         justify-content: center;
-        margin-bottom: 3rem;
+        margin-bottom: 2.5rem;
         position: sticky;
         top: 1rem;
         z-index: 50;
@@ -165,8 +166,9 @@
         /* --- GRID & CARD (Paper Style) --- */
     .cv-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 2rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 24px;
+        padding: 10px 0;
     }
 
     .cv-card {
@@ -180,30 +182,38 @@
         group: card; /* Grouping for hover effects */
     }
 
+    .cv-card input[type="radio"][name="template_slug"] {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        pointer-events: none;
+    }
+
         /* The Document Preview Area */
     .cv-card-preview-wrapper {
-        background: #e2e8f0; /* Warna abu-abu luar (frame space) */
-        border-radius: var(--radius-md);
+        background-color: #f5f3f8;
+        border-radius: 8px;
         overflow: hidden;
         position: relative;
-        box-shadow: var(--tpl-shadow);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         transition: var(--transition);
-        border: 1px solid var(--tpl-border);
-        aspect-ratio: 210 / 297; /* A4 Ratio */
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        aspect-ratio: 210 / 297;
         
         /* Flex agar kertas berada di tengah */
         display: flex;
         align-items: center;
         justify-content: center;
         
-        /* Jarak (Space) di sekeliling kertas agar terlihat ada frame */
-        padding: 4%; 
+        padding: 14px;
     }
 
     /* Hover effect on "Paper" */
     .cv-card:hover .cv-card-preview-wrapper {
-        transform: translateY(-6px);
-        box-shadow: var(--tpl-shadow-hover);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
         border-color: var(--tpl-accent);
     }
 
@@ -212,20 +222,29 @@
         border: 2px solid var(--tpl-accent);
         box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
     }
-    
-    .cv-card.is-selected .cv-btn-overlay {
-        background: var(--tpl-accent);
-        color: #fff;
+
+    .cv-preview-paper {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: #ffffff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
     }
 
     /* The Actual Image inside the paper */
     .cv-card-preview {
         width: 100%;
         height: 100%;
-        
-        /* DIUBAH: dari 'contain' menjadi 'cover' */
-        /* Agar gambar memenuhi area penuh tanpa ruang kosong */
-        object-fit: cover; 
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        object-position: top center;
         
         display: block;
         
@@ -235,40 +254,54 @@
         border-radius: 2px;
     }
 
-    /* Overlay Button "Use this template" */
-    .cv-btn-overlay {
+    .cv-preview-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #9ca3af;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 2px;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .cv-current-badge {
         position: absolute;
-        bottom: 12px;
-        right: 12px;
-        background: #fff;
-        color: #374151;
-        font-size: 0.8rem;
+        top: 8px;
+        right: 8px;
+        background: var(--tpl-accent);
+        color: #fff;
+        font-size: 0.72rem;
         font-weight: 600;
-        padding: 8px 16px;
-        border-radius: var(--radius-pill);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: var(--transition);
+        padding: 4px 10px;
+        border-radius: 999px;
         z-index: 2;
-        pointer-events: none; /* Click passes to label */
-        border: 1px solid rgba(0,0,0,0.05);
+        display: none;
+    }
+
+    .cv-card.is-selected .cv-current-badge {
+        display: inline-flex;
     }
     
     /* Card Meta Info (Title & Desc) */
     .cv-card-meta {
-        padding-top: 1rem;
-        text-align: left;
+        padding-top: 12px;
+        text-align: center;
     }
 
     .cv-card-title {
         font-weight: 700;
-        font-size: 1.1rem;
-        color: #111827;
+        font-size: 1rem;
+        color: var(--tpl-text);
         margin-bottom: 0.25rem;
         line-height: 1.3;
     }
 
     .cv-card-desc {
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         color: var(--tpl-muted);
         line-height: 1.5;
         display: -webkit-box;
@@ -304,7 +337,8 @@
     .cv-footer-thumb {
         width: 36px; height: 50px;
         border-radius: 4px;
-        object-fit: cover;
+        object-fit: contain;
+        background: #fff;
         border: 1px solid #e5e7eb;
     }
     
@@ -342,19 +376,32 @@
         text-align: center;
         padding: 4rem;
         color: var(--tpl-muted);
-        background: #fff;
+        background: rgba(255, 255, 255, 0.04);
         border-radius: var(--radius-lg);
-        border: 2px dashed #e5e7eb;
+        border: 2px dashed rgba(255, 255, 255, 0.18);
     }
 
     .hidden {
         display: none !important;
     }
 
-    @media (max-width: 640px) {
-        .cv-grid { grid-template-columns: 1fr; } /* Stack on mobile for better readability */
+    @media (max-width: 767.98px) {
+        .cv-grid { grid-template-columns: 1fr; }
         .cv-sticky-footer { flex-direction: column; padding: 1rem; bottom: 10px; }
         .cv-submit-btn { width: 100%; }
+        .cv-container { padding-bottom: 10rem; }
+    }
+
+    @media (max-width: 1199.98px) {
+        .cv-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+            padding: 12px 0;
+        }
+
+        .cv-card-preview-wrapper {
+            padding: 12px;
+        }
     }
 </style>
 
@@ -413,15 +460,13 @@
 
                     <!-- Preview Area (Paper Look) -->
                     <div class="cv-card-preview-wrapper">
-                        @if($thumbnailUrl)
-                            <img src="{{ $thumbnailUrl }}" alt="{{ $tpl->name }}" class="cv-card-preview" loading="lazy">
-                        @else
-                            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#ccc;">No Image</div>
-                        @endif
-                        
-                        <!-- Floating Button Overlay -->
-                        <div class="cv-btn-overlay">
-                            {{ $isChecked ? 'Selected' : 'Use this template' }}
+                        <div class="cv-preview-paper">
+                            @if($thumbnailUrl)
+                                <img src="{{ $thumbnailUrl }}" alt="{{ $tpl->name }}" class="cv-card-preview" loading="lazy">
+                            @else
+                                <div class="cv-preview-placeholder">No Image</div>
+                            @endif
+                            <div class="cv-current-badge">Selected</div>
                         </div>
                     </div>
 
@@ -473,23 +518,26 @@
             let selected = false;
             cards.forEach(card => {
                 const radio = card.querySelector('input[type="radio"]');
-                const btn = card.querySelector('.cv-btn-overlay');
                 const name = card.querySelector('.cv-card-title').textContent;
                 const desc = card.querySelector('.cv-card-desc').textContent;
-                const thumb = card.querySelector('img').src;
+                const thumbEl = card.querySelector('img');
 
                 if (radio.checked) {
                     card.classList.add('is-selected');
-                    btn.textContent = 'Selected';
                     
                     footerName.textContent = name;
                     footerDesc.textContent = desc; // Update footer desc
-                    footerThumb.src = thumb;
+                    if (thumbEl) {
+                        footerThumb.src = thumbEl.src;
+                        footerThumb.style.display = 'block';
+                    } else {
+                        footerThumb.removeAttribute('src');
+                        footerThumb.style.display = 'none';
+                    }
                     stickyFooter.classList.add('visible');
                     selected = true;
                 } else {
                     card.classList.remove('is-selected');
-                    btn.textContent = 'Use this template';
                 }
             });
         }

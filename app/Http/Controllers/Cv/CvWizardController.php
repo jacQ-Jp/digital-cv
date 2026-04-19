@@ -229,7 +229,6 @@ class CvWizardController extends Controller
             'skills' => ['array'],
             'skills.*.id' => ['nullable', 'integer'],
             'skills.*.name' => ['required', 'string', 'max:255'],
-            'skills.*.level' => ['nullable', 'string', 'max:255'],
         ]);
 
         $items = $payload['skills'] ?? [];
@@ -245,12 +244,12 @@ class CvWizardController extends Controller
             if (! $record) {
                 $record = $cv->skills()->create([
                     'name' => $item['name'],
-                    'level' => $item['level'] ?? null,
+                    'level' => null,
                 ]);
             } else {
                 $record->update([
                     'name' => $item['name'],
-                    'level' => $item['level'] ?? null,
+                    'level' => null,
                 ]);
             }
 
@@ -338,7 +337,6 @@ class CvWizardController extends Controller
             'skills' => ['nullable', 'array'],
             'skills.*.id' => ['nullable'],
             'skills.*.name' => ['nullable', 'string', 'max:255'],
-            'skills.*.level' => ['nullable', 'string', 'max:255'],
         ]);
 
         $cv->loadMissing(['user', 'template']);
@@ -393,6 +391,49 @@ class CvWizardController extends Controller
                 ->route('cvs.render', $cv)
                 ->with('pdf_warning', 'PDF otomatis belum tersedia di runtime ini. Gunakan tombol Print / PDF sebagai fallback sementara.');
         }
+    }
+
+    public function switchTemplate(Request $request, Cv $cv): JsonResponse
+    {
+        $this->authorizeCv($cv);
+
+        $data = $request->validate([
+            'template_slug' => ['required', 'string', 'max:255', 'exists:templates,slug'],
+        ]);
+
+        $template = Template::where('slug', $data['template_slug'])
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        // Update CV dengan template baru, tetap preserve data yang sudah ada
+        $cv->update([
+            'template_slug' => $template->slug,
+        ]);
+
+        // Refresh dan load semua relasi
+        $cv->refresh()->load(['template', 'experiences', 'educations', 'skills']);
+
+        return response()->json($this->serializeState($cv));
+    }
+
+    public function listTemplates(Cv $cv): JsonResponse
+    {
+        $this->authorizeCv($cv);
+
+        $templates = Template::where('is_active', true)
+            ->get()
+            ->map(fn ($template) => [
+                'slug' => $template->slug,
+                'name' => $template->name,
+                'description' => $template->description,
+                'thumbnail_url' => $template->thumbnailPreviewUrl(),
+            ])
+            ->values()
+            ->toArray();
+
+        return response()->json([
+            'templates' => $templates,
+        ]);
     }
 
     private function buildPdfBrowsershot(string $html): Browsershot
@@ -504,7 +545,6 @@ class CvWizardController extends Controller
             'skills' => $cv->skills->map(fn ($item) => [
                 'id' => $item->id,
                 'name' => $item->name,
-                'level' => $item->level,
             ])->values(),
         ];
     }
@@ -619,7 +659,6 @@ class CvWizardController extends Controller
                 return (object) [
                     'id' => is_numeric($item['id'] ?? null) ? (int) $item['id'] : null,
                     'name' => $this->cleanString($item['name'] ?? null),
-                    'level' => $this->cleanString($item['level'] ?? null),
                     '_placeholder' => [],
                 ];
             })
@@ -716,7 +755,6 @@ class CvWizardController extends Controller
             $row = $items->get($index) ?: (object) [
                 'id' => null,
                 'name' => null,
-                'level' => null,
                 '_placeholder' => [],
             ];
 
@@ -726,7 +764,6 @@ class CvWizardController extends Controller
             $result->push((object) [
                 'id' => $row->id,
                 'name' => $this->valueOrPlaceholder($row->name ?? null, $skillPlaceholder, $placeholder, 'name'),
-                'level' => $row->level,
                 '_placeholder' => $placeholder,
             ]);
         }

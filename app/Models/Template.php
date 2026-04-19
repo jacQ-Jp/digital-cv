@@ -26,6 +26,23 @@ class Template extends Model
         return $this->hasMany(Cv::class, 'template_slug', 'slug');
     }
 
+    /**
+     * Mark this template as default and unmark all others.
+     */
+    public function markAsDefault(): void
+    {
+        // Unmark all other defaults
+        Template::query()
+            ->where('id', '!=', $this->id)
+            ->update(['is_default' => false]);
+
+        // Mark this one as default
+        $this->update([
+            'is_default' => true,
+            'is_active' => true,
+        ]);
+    }
+
     public function thumbnailPreviewUrl(): ?string
     {
         $storedPath = trim((string) $this->thumbnail);

@@ -27,9 +27,7 @@ class TemplateController extends Controller
 
     public function create(): View
     {
-        $hasDefault = Template::query()->where('is_default', true)->exists();
-
-        return view('admin.templates.create', compact('hasDefault'));
+        return view('admin.templates.create');
     }
 
     public function store(Request $request): RedirectResponse
@@ -46,11 +44,9 @@ class TemplateController extends Controller
         $isActive = $request->has('is_active') ? $request->boolean('is_active') : true;
         $isDefault = $request->has('is_default') ? $request->boolean('is_default') : false;
 
-        if ($isDefault && Template::query()->where('is_default', true)->exists()) {
-            $this->throwRuleValidation(
-                'Sudah ada template default. Nonaktifkan status default pada template tersebut terlebih dahulu.',
-                'is_default'
-            );
+        // Default template must be active
+        if ($isDefault && ! $isActive) {
+            $this->throwRuleValidation('Default template harus tetap aktif.', 'is_active');
         }
 
         $this->ensureTemplateBladeExists($data['slug']);
@@ -60,6 +56,11 @@ class TemplateController extends Controller
         try {
             DB::transaction(function () use ($data, $thumbnailPath, $isActive, $isDefault) {
                 $normalizedIsActive = $isDefault ? true : $isActive;
+
+                // If marking as default, unmark all others
+                if ($isDefault) {
+                    Template::query()->update(['is_default' => false]);
+                }
 
                 Template::create([
                     'name' => $data['name'],
@@ -78,18 +79,12 @@ class TemplateController extends Controller
             throw $exception;
         }
 
-        return redirect()->route('admin.templates.index');
+        return redirect()->route('admin.templates.index')->with('status', 'Template berhasil ditambahkan.');
     }
 
     public function edit(Template $template): View
     {
-        $isUsed = $template->cvs()->exists();
-        $hasAnotherDefault = Template::query()
-            ->where('id', '!=', $template->id)
-            ->where('is_default', true)
-            ->exists();
-
-        return view('admin.templates.edit', compact('template', 'isUsed', 'hasAnotherDefault'));
+        return view('admin.templates.edit', compact('template'));
     }
 
     public function update(Request $request, Template $template): RedirectResponse
@@ -118,28 +113,31 @@ class TemplateController extends Controller
             ? $request->boolean('is_default')
             : (bool) $template->is_default;
 
-        $hasAnotherDefault = Template::query()
-            ->where('id', '!=', $template->id)
-            ->where('is_default', true)
-            ->exists();
-
-        if ($isDefault && $hasAnotherDefault) {
-            $this->throwRuleValidation(
-                'Sudah ada template default. Nonaktifkan status default pada template tersebut terlebih dahulu.',
-                'is_default'
-            );
-        }
-
         try {
             DB::transaction(function () use ($template, $data, $isUsed, $uploadedThumbnailPath, $oldThumbnail, $isActive, $isDefault) {
                 // Default template must be active.
                 $normalizedIsActive = $isDefault ? true : $isActive;
+
+                // If this template is currently default, it must remain active
+                if ($template->is_default && ! $normalizedIsActive) {
+                    $this->throwRuleValidation(
+                        'Default template cannot be inactivated.',
+                        'is_active'
+                    );
+                }
 
                 if (! $normalizedIsActive && $isUsed) {
                     $this->throwRuleValidation(
                         'Template cannot be inactivated because it is already used by users.',
                         'is_active'
                     );
+                }
+
+                // If marking this template as default, unmark all others
+                if ($isDefault && ! $template->is_default) {
+                    Template::query()
+                        ->where('id', '!=', $template->id)
+                        ->update(['is_default' => false]);
                 }
 
                 $template->update([
@@ -189,6 +187,84 @@ class TemplateController extends Controller
         return redirect()->route('admin.templates.index')->with('status', 'Template deleted.');
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'template_ids' => ['required', 'array', 'min:1'],
+            'template_ids.*' => ['required', 'integer', 'distinct', Rule::exists('templates', 'id')],
+        ]);
+
+        $templates = Template::query()
+            ->whereIn('id', $data['template_ids'])
+            ->withCount('cvs')
+            ->get();
+
+        $deletable = $templates->filter(function (Template $template): bool {
+            return ! $template->is_default && (int) $template->cvs_count === 0;
+        });
+
+        if ($deletable->isEmpty()) {
+            $this->throwRuleValidation('Template yang dipilih tidak bisa dihapus (default / sudah dipakai).', 'template_ids');
+        }
+
+        $deletedCount = 0;
+
+        DB::transaction(function () use ($deletable, &$deletedCount) {
+            foreach ($deletable as $template) {
+                $thumbnailPath = $template->thumbnail;
+                $template->delete();
+                if ($thumbnailPath) {
+                    Storage::disk('public')->delete($thumbnailPath);
+                }
+                $deletedCount++;
+            }
+        });
+
+        $blockedCount = $templates->count() - $deletedCount;
+        $status = $deletedCount.' template berhasil dihapus.';
+        if ($blockedCount > 0) {
+            $status .= ' '.$blockedCount.' template dilewati karena default / sedang dipakai.';
+        }
+
+        return redirect()->route('admin.templates.index')->with('status', $status);
+    }
+
+    public function destroyAll(): RedirectResponse
+    {
+        $templates = Template::query()
+            ->withCount('cvs')
+            ->get();
+
+        $deletable = $templates->filter(function (Template $template): bool {
+            return ! $template->is_default && (int) $template->cvs_count === 0;
+        });
+
+        if ($deletable->isEmpty()) {
+            $this->throwRuleValidation('Tidak ada template yang bisa dihapus (default / sedang dipakai).', 'template_ids');
+        }
+
+        $deletedCount = 0;
+
+        DB::transaction(function () use ($deletable, &$deletedCount) {
+            foreach ($deletable as $template) {
+                $thumbnailPath = $template->thumbnail;
+                $template->delete();
+                if ($thumbnailPath) {
+                    Storage::disk('public')->delete($thumbnailPath);
+                }
+                $deletedCount++;
+            }
+        });
+
+        $blockedCount = $templates->count() - $deletedCount;
+        $status = 'Berhasil menghapus '.$deletedCount.' template.';
+        if ($blockedCount > 0) {
+            $status .= ' '.$blockedCount.' template dilewati karena default / sedang dipakai.';
+        }
+
+        return redirect()->route('admin.templates.index')->with('status', $status);
+    }
+
     public function toggleActive(Template $template): RedirectResponse
     {
         if ($template->is_default) {
@@ -212,24 +288,20 @@ class TemplateController extends Controller
             return redirect()->route('admin.templates.index')->with('status', 'Template ini sudah menjadi default.');
         }
 
-        $hasAnotherDefault = Template::query()
-            ->where('id', '!=', $template->id)
-            ->where('is_default', true)
-            ->exists();
+        DB::transaction(function () use ($template) {
+            // Unmark all other templates as default
+            Template::query()
+                ->where('id', '!=', $template->id)
+                ->update(['is_default' => false]);
 
-        if ($hasAnotherDefault) {
-            $this->throwRuleValidation(
-                'Sudah ada template default. Nonaktifkan status default pada template tersebut terlebih dahulu.',
-                'is_default'
-            );
-        }
+            // Mark this template as default and active
+            $template->update([
+                'is_default' => true,
+                'is_active' => true,
+            ]);
 
-        $template->update([
-            'is_default' => true,
-            'is_active' => true,
-        ]);
-
-        $this->assertSingleDefaultTemplate();
+            $this->assertSingleDefaultTemplate();
+        });
 
         return redirect()->route('admin.templates.index')->with('status', 'Template berhasil dijadikan default.');
     }

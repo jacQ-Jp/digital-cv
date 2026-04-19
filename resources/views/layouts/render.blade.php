@@ -33,7 +33,7 @@
 </head>
 <body>
     <div class="toolbar">
-        <button onclick="history.back()">← Kembali</button>
+        <button type="button" onclick="window.location.href='{{ route('cvs.index') }}'">← Kembali</button>
         <button class="bp" onclick="window.print()">Print / PDF</button>
     </div>
     <article class="cv-paper">

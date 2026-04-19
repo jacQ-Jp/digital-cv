@@ -44,17 +44,18 @@
 
         .cv-paper > .sheet {
             max-width: 100% !important;
-            min-height: 100% !important;
+            min-height: 297mm !important;
             margin: 0 !important;
             border-radius: 0 !important;
             box-shadow: none !important;
         }
 
+        .cv-paper > .cv-wrapper,
         .cv-paper > .cv-modern,
         .cv-paper > .cv-sidebar,
         .cv-paper > .cv-henry,
         .cv-paper > .cv-poster {
-            min-height: 100% !important;
+            min-height: 297mm !important;
         }
     </style>
 </head>

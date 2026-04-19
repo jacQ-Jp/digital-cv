@@ -3,10 +3,10 @@
 @section('content')
 <style>
     :root {
-        --wiz-surface: rgba(255, 255, 255, 0.9);
-        --wiz-border: rgba(161, 182, 211, 0.35);
-        --wiz-text: #24344f;
-        --wiz-muted: #73839d;
+        --wiz-surface: rgba(11, 15, 26, 0.72);
+        --wiz-border: rgba(148, 163, 184, 0.26);
+        --wiz-text: #e6eefc;
+        --wiz-muted: #9fb0cb;
         --wiz-accent: #19b3c6;
         --wiz-accent-soft: rgba(25, 179, 198, 0.14);
         --wiz-warm: #ff8a65;
@@ -42,8 +42,8 @@
     }
 
     .wizard-shell .wizard-step {
-        background: #fff;
-        border: 1px solid rgba(161, 182, 211, 0.5);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(148, 163, 184, 0.3);
         border-radius: 12px;
         padding: 10px;
         cursor: pointer;
@@ -58,7 +58,7 @@
     }
 
     .wizard-shell .wizard-step:hover {
-        background: #f6fbfc;
+        background: rgba(25, 179, 198, 0.12);
         border-color: rgba(25, 179, 198, 0.45);
     }
 
@@ -66,8 +66,8 @@
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        background: #edf2f7;
-        color: #62718b;
+        background: rgba(148, 163, 184, 0.2);
+        color: #d2def2;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -82,7 +82,7 @@
         min-width: 0;
         font-size: 0.74rem;
         font-weight: 700;
-        color: #697b95;
+        color: #b7c6de;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         white-space: normal;
@@ -91,7 +91,7 @@
     }
 
     .wizard-shell .wizard-step.is-active {
-        background: #f2fbfd;
+        background: rgba(25, 179, 198, 0.16);
         border-color: rgba(25, 179, 198, 0.65);
         box-shadow: 0 0 0 0.12rem rgba(25, 179, 198, 0.15);
     }
@@ -102,12 +102,12 @@
     }
 
     .wizard-shell .wizard-step.is-active .wizard-step-label {
-        color: #1a7f97;
+        color: #7de5f3;
     }
 
     .wizard-shell .wizard-step.is-done {
         border-color: rgba(16, 169, 122, 0.52);
-        background: rgba(16, 169, 122, 0.08);
+        background: rgba(16, 169, 122, 0.14);
     }
 
     .wizard-shell .wizard-step.is-done .wizard-step-index {
@@ -122,7 +122,7 @@
     .wizard-shell .form-label,
     .wizard-shell label {
         display: block;
-        color: #4b6382;
+        color: #b0c0d8;
         font-weight: 700;
         font-size: 0.75rem;
         text-transform: uppercase;
@@ -139,8 +139,8 @@
     .wizard-shell input,
     .wizard-shell textarea,
     .wizard-shell select {
-        background: #fff;
-        border: 1px solid rgba(161, 182, 211, 0.6);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(148, 163, 184, 0.34);
         color: var(--wiz-text);
         border-radius: 10px;
         padding: 11px 14px;
@@ -160,7 +160,7 @@
 
     .wizard-shell input::placeholder,
     .wizard-shell textarea::placeholder {
-        color: #9cadc3;
+        color: #91a5c5;
     }
 
     .wizard-shell .btn {
@@ -173,15 +173,34 @@
     }
 
     .wizard-shell .btn-outline-secondary {
-        border-color: rgba(161, 182, 211, 0.66);
-        color: #5a7192;
-        background: #fff;
+        border-color: rgba(148, 163, 184, 0.45);
+        color: #d2ddf0;
+        background: rgba(255, 255, 255, 0.04);
     }
 
     .wizard-shell .btn-outline-secondary:hover {
         border-color: rgba(25, 179, 198, 0.52);
-        color: #2b4d72;
-        background: #f4fbfc;
+        color: #f4fdff;
+        background: rgba(25, 179, 198, 0.12);
+    }
+
+    .wizard-shell .btn-outline-dark {
+        border-color: rgba(148, 163, 184, 0.5);
+        color: #dbe7ff;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .wizard-shell .btn-outline-dark:hover:not(:disabled) {
+        border-color: rgba(25, 179, 198, 0.56);
+        color: #f4fdff;
+        background: rgba(25, 179, 198, 0.12);
+    }
+
+    .wizard-shell .btn-outline-dark:disabled {
+        color: rgba(203, 213, 225, 0.88);
+        border-color: rgba(148, 163, 184, 0.36);
+        background: rgba(15, 23, 42, 0.48);
+        opacity: 0.85;
     }
 
     .wizard-shell .btn-primary {
@@ -202,12 +221,12 @@
 
     .wizard-shell .wizard-preview-wrap {
         aspect-ratio: 210 / 297;
-        background: #fff;
+        background: rgba(255, 255, 255, 0.06);
         border-radius: 12px;
         overflow: hidden;
         position: relative;
-        box-shadow: inset 0 0 0 1px rgba(161, 182, 211, 0.5);
-        border: 1px solid rgba(161, 182, 211, 0.5);
+        box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.35);
+        border: 1px solid rgba(148, 163, 184, 0.35);
         width: min(100%, 430px);
         margin-inline: auto;
     }
@@ -241,13 +260,31 @@
     }
 
     .wizard-shell .wizard-preview-loading {
-        background: rgba(246, 250, 253, 0.86);
-        color: #2a6385;
+        background: rgba(8, 12, 22, 0.74);
+        color: #bdefff;
         font-weight: 700;
     }
 
     .wizard-shell .text-muted {
         color: var(--wiz-muted) !important;
+    }
+
+    .wizard-shell .text-danger.small {
+        display: none !important;
+    }
+
+    .wizard-shell .bg-light-subtle {
+        background: rgba(148, 163, 184, 0.18) !important;
+        border-color: rgba(161, 182, 211, 0.46) !important;
+    }
+
+    .wizard-shell .bg-light-subtle .text-muted {
+        color: #d7e4f9 !important;
+        font-weight: 700;
+    }
+
+    .wizard-shell .bg-light-subtle .fw-bold {
+        color: #ffffff;
     }
 
     .wizard-shell .badge {
@@ -261,13 +298,13 @@
 
     .wizard-shell .text-bg-success {
         background-color: rgba(16, 169, 122, 0.16) !important;
-        color: #0e7d59 !important;
+        color: #8ef0cb !important;
         border: 1px solid rgba(16, 169, 122, 0.42);
     }
 
     .wizard-shell .text-bg-secondary {
         background-color: rgba(255, 138, 101, 0.16) !important;
-        color: #b75b3f !important;
+        color: #ffd2c4 !important;
         border: 1px solid rgba(255, 138, 101, 0.38);
     }
 
@@ -326,6 +363,138 @@
         .wizard-shell .btn {
             animation: none !important;
             transition: none !important;
+        }
+    }
+
+    /* Modal Styles */
+    .modal.show {
+        z-index: 9999 !important;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .modal-header {
+        background: #fff;
+        border-bottom: 1px solid #e9ecef;
+        padding: 20px 30px;
+    }
+
+    .modal-header .modal-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #1a1a1a;
+    }
+
+    .modal.d-block {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-dialog {
+        position: relative;
+        margin: auto;
+        max-width: 1000px;
+        width: 98%;
+        margin-top: 15px !important;
+        margin-bottom: 15px !important;
+        max-height: calc(100vh - 30px);
+    }
+
+    .modal-body {
+        max-height: calc(100vh - 150px);
+        overflow-y: auto;
+        padding: 40px 50px;
+    }
+
+    /* Template Grid */
+    .template-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 40px;
+        padding: 20px 0;
+    }
+
+    .template-card-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .template-card-frame {
+        background-color: #f5f3f8;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .template-card-frame .card {
+        border: none;
+        background: #ffffff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .template-card-frame .card-img-top {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        display: block;
+        background: #ffffff;
+    }
+
+    .template-current-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 2;
+    }
+
+    .template-card-info {
+        margin-top: 12px;
+        text-align: center;
+        min-height: 50px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .template-card-info h6 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 4px;
+    }
+
+    .template-card-info small {
+        font-size: 0.8rem;
+        color: #999;
+        line-height: 1.3;
+    }
+
+    @media (max-width: 991.98px) {
+        .template-grid {
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        .modal-body {
+            padding: 24px;
         }
     }
 </style>
@@ -409,9 +578,16 @@
                             </span>
                         </div>
 
-                        <p class="text-muted small mb-3">
-                            Template: <strong style="color:#324865;">@{{ previewData.templateName || '-' }}</strong>
-                        </p>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <p class="text-muted small mb-0">
+                                    Template: <strong style="color: var(--wiz-text);">@{{ previewData.templateName || '-' }}</strong>
+                                </p>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" @click="showTemplateModal = true" :disabled="isSaving">
+                                Change
+                            </button>
+                        </div>
 
                         <div class="wizard-preview-scroll flex-grow-1">
                             <div class="wizard-preview-wrap">
@@ -433,6 +609,57 @@
                             </div>
                         </div>
 
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Template Switch Modal -->
+        <div v-if="showTemplateModal" class="modal show d-block" style="background: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-2">
+                        <h5 class="modal-title">Select Template</h5>
+                        <button type="button" class="btn-close" @click="showTemplateModal = false" :disabled="isSaving"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small mb-4">
+                            Choose a template. Your CV data will be preserved.
+                        </p>
+                        <div class="template-grid">
+                            <div v-for="template in availableTemplates" :key="template.slug" class="template-card-wrapper">
+                                <div class="template-card-frame">
+                                    <div 
+                                        class="card cursor-pointer transition-all h-100"
+                                        :class="{ 'border-primary border-2': template.slug === currentTemplatSlug }"
+                                        @click="selectNewTemplate(template.slug)"
+                                        style="cursor: pointer; position: relative;"
+                                    >
+                                        <img 
+                                            v-if="template.thumbnail_url" 
+                                            :src="template.thumbnail_url" 
+                                            class="card-img-top" 
+                                            :alt="template.name"
+                                        >
+                                        <div v-else class="card-img-top d-flex align-items-center justify-content-center" style="background: #f0f0f0; color: #999;">
+                                            <span>No Image</span>
+                                        </div>
+                                        <div v-if="template.slug === currentTemplatSlug" class="template-current-badge">
+                                            <span class="badge text-bg-primary">Current</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="template-card-info">
+                                    <h6 class="mb-1">@{{ template.name }}</h6>
+                                    <small class="text-muted d-block">@{{ template.description }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-outline-secondary" @click="showTemplateModal = false" :disabled="isSaving">
+                            Cancel
+                        </button>
                     </div>
                 </div>
             </div>

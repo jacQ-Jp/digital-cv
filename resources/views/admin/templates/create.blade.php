@@ -40,6 +40,24 @@
         <div class="mb-4">
             <label class="form-label d-block">Status</label>
 
+            <div class="mb-3">
+                <input type="hidden" name="is_active" value="0">
+                <div class="form-check form-switch">
+                    <input
+                        class="form-check-input"
+                        type="checkbox"
+                        role="switch"
+                        id="is_active"
+                        name="is_active"
+                        value="1"
+                        @checked((string) old('is_active', '1') === '1')
+                    >
+                    <label class="form-check-label" for="is_active">Active</label>
+                </div>
+                <div class="form-text">Template aktif bisa dipilih saat membuat CV baru.</div>
+                @error('is_active')<div class="text-danger small">{{ $message }}</div>@enderror
+            </div>
+
             <input type="hidden" name="is_default" value="0">
             <div class="form-check form-switch">
                 <input
@@ -50,14 +68,10 @@
                     name="is_default"
                     value="1"
                     @checked((string) old('is_default', '0') === '1')
-                    @disabled($hasDefault)
                 >
                 <label class="form-check-label" for="is_default">Default</label>
             </div>
-            <div class="form-text">Hanya satu template yang boleh default. Jika dipilih default, template otomatis active.</div>
-            @if($hasDefault)
-                <div class="form-text text-warning">Saat ini sudah ada template default, jadi opsi ini dinonaktifkan.</div>
-            @endif
+            <div class="form-text">Hanya satu template yang boleh default. Jika dipilih default, template otomatis active. Jika sudah ada template default, yang lama otomatis tidak menjadi default.</div>
             @error('is_default')<div class="text-danger small">{{ $message }}</div>@enderror
         </div>
 

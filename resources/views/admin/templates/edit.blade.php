@@ -47,6 +47,28 @@
         <div class="mb-4">
             <label class="form-label d-block">Status</label>
 
+            <div class="mb-3">
+                <input type="hidden" name="is_active" value="0">
+                <div class="form-check form-switch">
+                    <input
+                        class="form-check-input"
+                        type="checkbox"
+                        role="switch"
+                        id="is_active"
+                        name="is_active"
+                        value="1"
+                        @checked((string) old('is_active', $template->is_active ? '1' : '0') === '1')
+                        @disabled($template->is_default)
+                    >
+                    <label class="form-check-label" for="is_active">Active</label>
+                </div>
+                <div class="form-text">Nonaktifkan template jika tidak ingin digunakan lagi.</div>
+                @if($template->is_default)
+                    <div class="form-text text-warning">Template default harus tetap aktif dan tidak bisa dinonaktifkan.</div>
+                @endif
+                @error('is_active')<div class="text-danger small">{{ $message }}</div>@enderror
+            </div>
+
             <input type="hidden" name="is_default" value="0">
             <div class="form-check form-switch">
                 <input
@@ -57,14 +79,10 @@
                     name="is_default"
                     value="1"
                     @checked((string) old('is_default', $template->is_default ? '1' : '0') === '1')
-                    @disabled($hasAnotherDefault && ! $template->is_default)
                 >
                 <label class="form-check-label" for="is_default">Default</label>
             </div>
-            <div class="form-text">Hanya satu template yang boleh default. Jika dipilih default, template otomatis active.</div>
-            @if($hasAnotherDefault && ! $template->is_default)
-                <div class="form-text text-warning">Sudah ada template default lain, jadi opsi ini dinonaktifkan.</div>
-            @endif
+            <div class="form-text">Hanya satu template yang boleh default. Jika dipilih default, template otomatis active. Jika sudah ada template default, yang lama otomatis tidak menjadi default.</div>
             @error('is_default')<div class="text-danger small">{{ $message }}</div>@enderror
         </div>
 

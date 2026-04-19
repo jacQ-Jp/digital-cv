@@ -100,7 +100,7 @@
                     </div>
                     <div class="d-flex flex-wrap gap-2">
                         @forelse($cv->skills as $skill)
-                            <span class="badge text-bg-secondary">{{ $skill->name }}@if($skill->level) ({{ $skill->level }})@endif</span>
+                            <span class="badge text-bg-secondary">{{ $skill->name }}</span>
                         @empty
                             <span class="text-muted">No skills yet.</span>
                         @endforelse
@@ -126,24 +126,36 @@
             toast.id = toastId;
             toast.style.position = 'fixed';
             toast.style.right = '16px';
-            toast.style.bottom = '16px';
-            toast.style.background = '#0f172a';
-            toast.style.color = '#fff';
-            toast.style.padding = '10px 14px';
-            toast.style.borderRadius = '10px';
-            toast.style.fontSize = '14px';
-            toast.style.fontWeight = '600';
+            toast.style.top = window.innerWidth <= 768 ? '76px' : '86px';
+            toast.style.left = 'auto';
+            toast.style.bottom = 'auto';
+            toast.style.display = 'inline-flex';
+            toast.style.alignItems = 'center';
+            toast.style.justifyContent = 'center';
+            toast.style.width = 'fit-content';
+            toast.style.maxWidth = 'min(90vw, 360px)';
+            toast.style.minHeight = '46px';
+            toast.style.background = 'rgba(2, 6, 23, 0.92)';
+            toast.style.border = '1px solid rgba(139, 92, 246, 0.72)';
+            toast.style.color = '#f8fafc';
+            toast.style.padding = '0.72rem 1rem';
+            toast.style.borderRadius = '12px';
+            toast.style.fontSize = '0.92rem';
+            toast.style.fontWeight = '700';
+            toast.style.letterSpacing = '0.01em';
             toast.style.opacity = '0';
-            toast.style.transform = 'translateY(10px)';
-            toast.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+            toast.style.transform = 'translateY(-12px) scale(0.98)';
+            toast.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
             toast.style.pointerEvents = 'none';
-            toast.style.zIndex = '2000';
+            toast.style.zIndex = '2500';
+            toast.style.boxShadow = '0 14px 28px rgba(15, 23, 42, 0.44), 0 0 0 1px rgba(139, 92, 246, 0.2)';
+            toast.style.backdropFilter = 'blur(10px)';
             document.body.appendChild(toast);
         }
 
         toast.textContent = message;
         toast.style.opacity = '1';
-        toast.style.transform = 'translateY(0)';
+        toast.style.transform = 'translateY(0) scale(1)';
 
         if (toast._hideTimer) {
             clearTimeout(toast._hideTimer);
@@ -151,7 +163,7 @@
 
         toast._hideTimer = setTimeout(() => {
             toast.style.opacity = '0';
-            toast.style.transform = 'translateY(10px)';
+            toast.style.transform = 'translateY(-12px) scale(0.98)';
         }, 1500);
     }
 
@@ -197,7 +209,7 @@
             if (copied) {
                 const prev = copyBtn.textContent;
                 copyBtn.textContent = 'Copied!';
-                showToast('Link copied!');
+                showToast('link copied!');
                 setTimeout(() => {
                     copyBtn.textContent = prev;
                 }, 1200);

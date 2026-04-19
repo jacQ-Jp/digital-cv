@@ -7,10 +7,32 @@ use App\Http\Controllers\Cv\CvEducationController;
 use App\Http\Controllers\Cv\CvExperienceController;
 use App\Http\Controllers\Cv\CvSkillController;
 use App\Http\Controllers\Cv\CvWizardController;
+use App\Models\Cv;
+use App\Models\Template;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    $templates = Template::query()
+        ->where('is_active', true)
+        ->orderByDesc('is_default')
+        ->orderBy('name')
+        ->get();
+
+    $templateCategories = $templates
+        ->pluck('slug')
+        ->filter()
+        ->map(fn ($slug) => strtolower(trim((string) $slug)))
+        ->unique()
+        ->values();
+
+    $stats = [
+        'templates' => $templates->count(),
+        'published_cvs' => Cv::query()->where('status', 'published')->count(),
+        'users' => User::query()->count(),
+    ];
+
+    return view('welcome', compact('templates', 'templateCategories', 'stats'));
 });
 
 // Authentication (manual)
@@ -55,12 +77,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/cvs/{cv}/wizard/preview', [CvWizardController::class, 'preview'])->name('cvs.wizard.preview');
     Route::post('/cvs/{cv}/wizard/preview/live', [CvWizardController::class, 'livePreview'])->name('cvs.wizard.preview.live');
     Route::get('/cvs/{cv}/wizard/pdf', [CvWizardController::class, 'downloadPdf'])->name('cvs.wizard.pdf');
+    Route::get('/cvs/{cv}/wizard/templates', [CvWizardController::class, 'listTemplates'])->name('cvs.wizard.templates');
+    Route::patch('/cvs/{cv}/wizard/switch-template', [CvWizardController::class, 'switchTemplate'])->name('cvs.wizard.switch-template');
 
     Route::get('/cvs/{cv}/render', [CvController::class, 'render'])->name('cvs.render');
     Route::get('/cvs/{cv}/thumb', [CvController::class, 'thumb'])->name('cvs.thumb');
 
     // Advanced actions
     Route::patch('/cvs/{cv}/toggle-publish', [CvController::class, 'togglePublish'])->name('cvs.toggle-publish');
+    Route::delete('/cvs/bulk-delete', [CvController::class, 'bulkDestroy'])->name('cvs.bulk-destroy');
+    Route::delete('/cvs/destroy-all', [CvController::class, 'destroyAll'])->name('cvs.destroy-all');
 
     Route::resource('cvs', CvController::class)->except(['index']);
 
@@ -72,6 +98,12 @@ Route::middleware('auth')->group(function () {
 // Admin (template only)
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', fn () => redirect()->route('admin.templates.index'))->name('dashboard');
+
+    Route::delete('templates/bulk-delete', [\App\Http\Controllers\Admin\TemplateController::class, 'bulkDestroy'])
+        ->name('templates.bulk-destroy');
+
+    Route::delete('templates/destroy-all', [\App\Http\Controllers\Admin\TemplateController::class, 'destroyAll'])
+        ->name('templates.destroy-all');
 
     Route::patch('templates/{template}/toggle-active', [\App\Http\Controllers\Admin\TemplateController::class, 'toggleActive'])
         ->name('templates.toggle-active');

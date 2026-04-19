@@ -117,6 +117,13 @@ if (root) {
 
       return requestWithFetch('PUT', url, data, config);
     },
+    patch(url, data = null, config = {}) {
+      if (window.axios) {
+        return window.axios.patch(url, data, config);
+      }
+
+      return requestWithFetch('PATCH', url, data, config);
+    },
   };
 
   createApp({
@@ -179,6 +186,9 @@ if (root) {
             public_url: '',
           },
         },
+        showTemplateModal: false,
+        availableTemplates: [],
+        currentTemplatSlug: initialTemplateSlug,
       };
     },
     computed: {
@@ -206,10 +216,17 @@ if (root) {
           skills: this.form.skills.length,
         };
       },
+      templateSupportsPhoto() {
+        return this.state.cv.template_supports_photo || false;
+      },
+      templateSupportsAccent() {
+        return this.state.cv.template_supports_accent || false;
+      },
     },
     mounted() {
       this.schedulePreviewRender();
       this.fetchState();
+      this.fetchTemplates();
     },
     methods: {
       normalizeStep(stepNumber) {
@@ -236,6 +253,43 @@ if (root) {
           const message = error.response?.data?.message || 'Gagal memuat data CV. Preview tetap bisa digunakan.';
           this.showToast(message);
           this.schedulePreviewRender();
+        }
+      },
+      async fetchTemplates() {
+        try {
+          const response = await httpClient.get(`${baseUrl}/templates`);
+          this.availableTemplates = response.data?.templates || [];
+        } catch (error) {
+          console.warn('Failed to fetch templates:', error);
+          this.availableTemplates = [];
+        }
+      },
+      async selectNewTemplate(templateSlug) {
+        if (this.isSaving || templateSlug === this.currentTemplatSlug) {
+          return;
+        }
+
+        this.isSaving = true;
+
+        try {
+          const response = await httpClient.patch(`${baseUrl}/switch-template`, {
+            template_slug: templateSlug,
+          });
+
+          if (response?.data) {
+            this.applyState(response.data, {
+              triggerPreviewRender: true,
+              preservePersonal: false,
+            });
+            this.currentTemplatSlug = templateSlug;
+            this.showTemplateModal = false;
+            this.showToast('Template changed successfully');
+          }
+        } catch (error) {
+          const backendMessage = error.response?.data?.message || '';
+          this.showToast(backendMessage || 'Failed to switch template');
+        } finally {
+          this.isSaving = false;
         }
       },
       buildPreviewPayload() {
@@ -310,6 +364,11 @@ if (root) {
           ...this.state.cv,
           ...cvPayload,
         };
+
+        // Update current template slug from state
+        if (cvPayload.template_slug) {
+          this.currentTemplatSlug = cvPayload.template_slug;
+        }
 
         if (this.photoObjectUrl && !preservePersonal) {
           URL.revokeObjectURL(this.photoObjectUrl);
@@ -607,10 +666,10 @@ if (root) {
           copied = await this.autoCopyText(url);
         }
         
-        this.showToast(copied ? 'Link berhasil disalin' : 'CV berhasil dipublish');
+        this.showToast(copied ? 'link copied!' : 'CV berhasil dipublish');
 
         window.setTimeout(() => {
-          this.redirectToCvListWithNotice('published');
+          this.redirectToCvListWithNotice(copied ? 'link_copied' : 'published');
         }, 350);
       },
       downloadPdf() {

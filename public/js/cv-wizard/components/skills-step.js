@@ -5,35 +5,16 @@ export const SkillsStep = {
     errors: { type: Object, default: () => ({}) },
   },
   emits: ['update:items'],
-  data() {
-    return {
-      levels: ['Novice', 'Beginner', 'Skillful', 'Experienced', 'Expert'],
-    };
-  },
   methods: {
     addItem() {
       this.$emit('update:items', [
         ...this.items,
-        { id: null, name: '', level: 'Beginner' },
+        { id: null, name: '' },
       ]);
     },
     updateItem(index, field, value) {
       const next = this.items.map((item, i) => (i === index ? { ...item, [field]: value } : item));
       this.$emit('update:items', next);
-    },
-    levelToIndex(level) {
-      const normalized = String(level || '').toLowerCase();
-      const idx = this.levels.findIndex((name) => name.toLowerCase() === normalized);
-      return idx >= 0 ? idx : 1;
-    },
-    updateLevelByIndex(index, rawValue) {
-      const levelIndex = Number(rawValue);
-      const safeIndex = Number.isFinite(levelIndex) ? Math.min(Math.max(levelIndex, 0), this.levels.length - 1) : 1;
-      this.updateItem(index, 'level', this.levels[safeIndex]);
-    },
-    levelBtnClass(item, levelName) {
-      const active = (item.level || '').toLowerCase() === levelName.toLowerCase();
-      return active ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-secondary';
     },
     removeItem(index) {
       this.$emit('update:items', this.items.filter((_, i) => i !== index));
@@ -62,35 +43,10 @@ export const SkillsStep = {
           </div>
 
           <div class="row g-2">
-            <div class="col-md-7">
+            <div class="col-12">
               <label class="form-label">Skill</label>
               <input class="form-control" :value="item.name" @input="updateItem(idx, 'name', $event.target.value)" />
               <div class="text-danger small" v-if="fieldError(idx, 'name')">{{ fieldError(idx, 'name') }}</div>
-            </div>
-            <div class="col-md-5">
-              <label class="form-label">Level</label>
-              <input
-                type="range"
-                class="form-range"
-                min="0"
-                :max="levels.length - 1"
-                step="1"
-                :value="levelToIndex(item.level)"
-                @input="updateLevelByIndex(idx, $event.target.value)"
-              />
-              <div class="d-flex flex-wrap gap-1 mt-1">
-                <button
-                  type="button"
-                  v-for="(level, levelIdx) in levels"
-                  :key="'level-' + idx + '-' + level"
-                  :class="levelBtnClass(item, level)"
-                  @click="updateLevelByIndex(idx, levelIdx)"
-                >
-                  {{ level }}
-                </button>
-              </div>
-              <div class="small mt-2 text-muted">Aktif: <strong>{{ item.level || levels[levelToIndex(item.level)] }}</strong></div>
-              <div class="text-danger small" v-if="fieldError(idx, 'level')">{{ fieldError(idx, 'level') }}</div>
             </div>
           </div>
         </div>
