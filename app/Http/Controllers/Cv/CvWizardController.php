@@ -22,6 +22,7 @@ class CvWizardController extends Controller
         'classic',
         'modern',
         'sidebar',
+        'mono-poster',
     ];
 
     private const ACCENT_ENABLED_TEMPLATE_SLUGS = [
@@ -322,6 +323,7 @@ class CvWizardController extends Controller
             'summary' => ['nullable', 'string'],
             'accent_color' => ['nullable', 'string', 'max:7'],
             'photo_url' => ['nullable', 'string', 'max:2048'],
+            'remove_photo' => ['nullable', 'boolean'],
             'experiences' => ['nullable', 'array'],
             'experiences.*.id' => ['nullable'],
             'experiences.*.position' => ['nullable', 'string', 'max:255'],
@@ -367,6 +369,11 @@ class CvWizardController extends Controller
         $this->authorizeCv($cv);
 
         $cv->load(['user', 'template', 'experiences', 'educations', 'skills']);
+
+        $embeddedPhoto = $this->embeddedPhotoDataUri($cv->photo_path);
+        if ($embeddedPhoto !== null) {
+            $cv->setAttribute('photo_preview_url', $embeddedPhoto);
+        }
 
         $renderer = app(CvTemplateRenderer::class);
         $resolvedView = $renderer->resolveView($cv);
@@ -522,7 +529,7 @@ class CvWizardController extends Controller
                 'personal_name' => $cv->personal_name,
                 'personal_email' => $cv->personal_email,
                 'accent_color' => $this->normalizeAccentColor($cv->accent_color),
-                'photo_url' => $cv->photo_path ? Storage::disk('public')->url($cv->photo_path) : null,
+                'photo_url' => $this->publicPhotoUrl($cv->photo_path),
                 'public_uuid' => $cv->public_uuid,
                 'public_url' => $cv->status === 'published' && $cv->public_uuid
                     ? route('cvs.public', ['token' => $cv->public_uuid])
@@ -597,8 +604,15 @@ class CvWizardController extends Controller
             'summary'
         );
 
-        if ($this->templateSupportsPhoto($previewCv) && array_key_exists('photo_url', $payload) && is_string($payload['photo_url']) && $payload['photo_url'] !== '') {
-            $previewCv->setAttribute('photo_preview_url', $payload['photo_url']);
+        $removePhoto = (bool) ($payload['remove_photo'] ?? false);
+
+        if ($this->templateSupportsPhoto($previewCv)) {
+            if ($removePhoto) {
+                $previewCv->setAttribute('photo_path', null);
+                $previewCv->setAttribute('photo_preview_url', null);
+            } elseif (array_key_exists('photo_url', $payload) && is_string($payload['photo_url']) && $payload['photo_url'] !== '') {
+                $previewCv->setAttribute('photo_preview_url', $payload['photo_url']);
+            }
         }
 
         $template = null;
@@ -804,6 +818,73 @@ class CvWizardController extends Controller
         $normalized = trim((string) $value);
 
         return $normalized === '' ? null : $normalized;
+    }
+
+    private function publicPhotoUrl(mixed $value): ?string
+    {
+        $photoPath = $this->cleanString($value);
+
+        if ($photoPath === null) {
+            return null;
+        }
+
+        if (
+            preg_match('/^(https?:)?\/\//i', $photoPath)
+            || str_starts_with($photoPath, 'data:')
+            || str_starts_with($photoPath, 'blob:')
+        ) {
+            return $photoPath;
+        }
+
+        $normalizedPath = ltrim($photoPath, '/');
+
+        if (str_starts_with($normalizedPath, 'storage/')) {
+            return '/'.$normalizedPath;
+        }
+
+        return '/storage/'.$normalizedPath;
+    }
+
+    private function embeddedPhotoDataUri(mixed $value): ?string
+    {
+        $photoPath = $this->cleanString($value);
+
+        if ($photoPath === null) {
+            return null;
+        }
+
+        if (str_starts_with($photoPath, 'data:')) {
+            return $photoPath;
+        }
+
+        if (preg_match('/^(https?:)?\/\//i', $photoPath) || str_starts_with($photoPath, 'blob:')) {
+            return null;
+        }
+
+        $relativePath = ltrim($photoPath, '/');
+        if (str_starts_with($relativePath, 'storage/')) {
+            $relativePath = ltrim(substr($relativePath, strlen('storage/')), '/');
+        }
+
+        if ($relativePath === '' || ! Storage::disk('public')->exists($relativePath)) {
+            return null;
+        }
+
+        $absolutePath = Storage::disk('public')->path($relativePath);
+        if (! is_file($absolutePath) || ! is_readable($absolutePath)) {
+            return null;
+        }
+
+        $binary = @file_get_contents($absolutePath);
+        if ($binary === false || $binary === '') {
+            return null;
+        }
+
+        $mime = function_exists('mime_content_type')
+            ? (mime_content_type($absolutePath) ?: 'image/jpeg')
+            : 'image/jpeg';
+
+        return 'data:'.$mime.';base64,'.base64_encode($binary);
     }
 
     private function valueOrPlaceholder(mixed $value, string $placeholder, array &$placeholderFlags, string $key): string

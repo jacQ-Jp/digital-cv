@@ -14,7 +14,27 @@
     $thumbMode = ($layout === 'layouts.thumb');
 
     // === PHOTO HANDLING ===
-    $photo = data_get($cv, 'photo_preview_url') ?? (data_get($cv, 'photo_path') ? asset('storage/'.data_get($cv, 'photo_path')) : null);
+    $photoPreview = trim((string) data_get($cv, 'photo_preview_url'));
+    $storedPhotoPath = trim((string) data_get($cv, 'photo_path'));
+    if ($photoPreview !== '') {
+        $photo = $photoPreview;
+    } elseif ($storedPhotoPath !== '') {
+        if (
+            preg_match('/^(https?:)?\/\//i', $storedPhotoPath)
+            || str_starts_with($storedPhotoPath, 'data:')
+            || str_starts_with($storedPhotoPath, 'blob:')
+            || str_starts_with($storedPhotoPath, '/storage/')
+        ) {
+            $photo = $storedPhotoPath;
+        } else {
+            $normalizedPhotoPath = ltrim($storedPhotoPath, '/');
+            $photo = str_starts_with($normalizedPhotoPath, 'storage/')
+                ? '/'.$normalizedPhotoPath
+                : '/storage/'.$normalizedPhotoPath;
+        }
+    } else {
+        $photo = null;
+    }
     
     // Generate Initials
     $initials = collect(explode(' ', $name))

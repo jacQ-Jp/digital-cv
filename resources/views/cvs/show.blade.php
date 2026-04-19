@@ -8,14 +8,14 @@
             <div class="text-muted small">Status: {{ $cv->status }} | Template: {{ $cv->template?->name ?? $cv->template_slug }}</div>
             <div class="mt-2 d-flex flex-wrap gap-2">
                 <a class="btn btn-sm btn-outline-secondary" href="{{ route('cvs.render', $cv) }}" target="_blank" rel="noopener">Preview Render</a>
-                <button
-                    type="button"
-                    id="savePdfBtn"
+                <a
+                    href="{{ route('cvs.wizard.pdf', $cv) }}"
                     class="btn btn-sm btn-outline-dark"
-                    data-render-url="{{ route('cvs.render', $cv) }}"
+                    target="_blank"
+                    rel="noopener"
                 >
                     Save PDF
-                </button>
+                </a>
                 @if($cv->status === 'published')
                     <button
                         type="button"
@@ -219,34 +219,6 @@
         });
     }
 
-    const pdfBtn = document.getElementById('savePdfBtn');
-    if (pdfBtn) {
-        pdfBtn.addEventListener('click', () => {
-            const renderUrl = pdfBtn.getAttribute('data-render-url');
-            if (!renderUrl) return;
-
-            const printWindow = window.open(renderUrl, '_blank');
-            if (!printWindow) return;
-
-            const started = Date.now();
-            const timer = setInterval(() => {
-                if (Date.now() - started > 12000) {
-                    clearInterval(timer);
-                    return;
-                }
-
-                try {
-                    if (printWindow.document && printWindow.document.readyState === 'complete') {
-                        clearInterval(timer);
-                        printWindow.focus();
-                        printWindow.print();
-                    }
-                } catch {
-                    // keep polling while cross-window is still initializing
-                }
-            }, 350);
-        });
-    }
 })();
 </script>
 @endsection

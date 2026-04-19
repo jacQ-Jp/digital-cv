@@ -14,9 +14,27 @@
     $t = ($layout === 'layouts.thumb');
     
     // --- PHOTO LOGIC (PENTING: Diembalikan agar kompatibel dengan layout asli) ---
-    $previewPhotoUrl = data_get($cv, 'photo_preview_url');
-    $storedPhotoPath = data_get($cv, 'photo_path');
-    $ph = $previewPhotoUrl ?: ($storedPhotoPath ? asset('storage/'.$storedPhotoPath) : null);
+    $previewPhotoUrl = trim((string) data_get($cv, 'photo_preview_url'));
+    $storedPhotoPath = trim((string) data_get($cv, 'photo_path'));
+    if ($previewPhotoUrl !== '') {
+        $ph = $previewPhotoUrl;
+    } elseif ($storedPhotoPath !== '') {
+        if (
+            preg_match('/^(https?:)?\/\//i', $storedPhotoPath)
+            || str_starts_with($storedPhotoPath, 'data:')
+            || str_starts_with($storedPhotoPath, 'blob:')
+            || str_starts_with($storedPhotoPath, '/storage/')
+        ) {
+            $ph = $storedPhotoPath;
+        } else {
+            $normalizedPhotoPath = ltrim($storedPhotoPath, '/');
+            $ph = str_starts_with($normalizedPhotoPath, 'storage/')
+                ? '/'.$normalizedPhotoPath
+                : '/storage/'.$normalizedPhotoPath;
+        }
+    } else {
+        $ph = null;
+    }
     
     // --- THEME CONFIGURATION ---
     $accent = strtoupper((string) ($cv->accent_color ?? '#7C3AED'));

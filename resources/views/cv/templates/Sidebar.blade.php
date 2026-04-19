@@ -12,9 +12,27 @@
     $website = data_get($cv, 'personal_website');
     $thumbMode = ($layout === 'layouts.thumb');
 
-    $photoPreview = data_get($cv, 'photo_preview_url');
-    $photoPath = data_get($cv, 'photo_path');
-    $photo = $photoPreview ?: ($photoPath ? asset('storage/'.$photoPath) : null);
+    $photoPreview = trim((string) data_get($cv, 'photo_preview_url'));
+    $photoPath = trim((string) data_get($cv, 'photo_path'));
+    if ($photoPreview !== '') {
+        $photo = $photoPreview;
+    } elseif ($photoPath !== '') {
+        if (
+            preg_match('/^(https?:)?\/\//i', $photoPath)
+            || str_starts_with($photoPath, 'data:')
+            || str_starts_with($photoPath, 'blob:')
+            || str_starts_with($photoPath, '/storage/')
+        ) {
+            $photo = $photoPath;
+        } else {
+            $normalizedPhotoPath = ltrim($photoPath, '/');
+            $photo = str_starts_with($normalizedPhotoPath, 'storage/')
+                ? '/'.$normalizedPhotoPath
+                : '/storage/'.$normalizedPhotoPath;
+        }
+    } else {
+        $photo = null;
+    }
 
     // B&W Theme: Hanya menggunakan Hitam, Putih, dan Abu-abu
     $accent = '#000000'; 

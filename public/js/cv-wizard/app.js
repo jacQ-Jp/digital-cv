@@ -300,6 +300,7 @@ if (root) {
           summary: this.form.personal.summary || '',
           accent_color: this.form.personal.accent_color || '#7C3AED',
           photo_url: this.form.personal.photo_url || null,
+          remove_photo: this.form.personal.remove_photo ? 1 : 0,
           experiences: this.form.experiences,
           educations: this.form.educations,
           skills: this.form.skills,

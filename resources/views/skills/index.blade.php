@@ -146,14 +146,14 @@
                             >
                                 Public Link
                             </button>
-                            <button
-                                type="button"
-                                id="savePdfBtn"
+                            <a
+                                href="{{ route('cvs.wizard.pdf', $cv) }}"
                                 class="btn btn-outline-dark"
-                                data-render-url="{{ $renderUrl }}"
+                                target="_blank"
+                                rel="noopener"
                             >
                                 Save PDF
-                            </button>
+                            </a>
                         </div>
 
                         <div class="small mb-3" id="publicLinkHint" style="color:#64748b;">
@@ -218,7 +218,6 @@
     const publicHint = document.getElementById('publicLinkHint');
     const copyBtn = document.getElementById('copyPublicBtn');
     const copyToast = document.getElementById('copyToast');
-    const pdfBtn = document.getElementById('savePdfBtn');
     const reviewIframe = document.getElementById('finalReviewIframe');
     let toastTimer = null;
 
@@ -302,32 +301,6 @@
             showCopyToast('Gagal copy link');
             window.prompt('Copy this link:', url);
         }
-    });
-
-    pdfBtn?.addEventListener('click', () => {
-        const renderUrl = pdfBtn.getAttribute('data-render-url');
-        if (!renderUrl) return;
-
-        const printWindow = window.open(renderUrl, '_blank');
-        if (!printWindow) return;
-
-        const started = Date.now();
-        const timer = setInterval(() => {
-            if (Date.now() - started > 12000) {
-                clearInterval(timer);
-                return;
-            }
-
-            try {
-                if (printWindow.document && printWindow.document.readyState === 'complete') {
-                    clearInterval(timer);
-                    printWindow.focus();
-                    printWindow.print();
-                }
-            } catch {
-                // keep polling while cross-window is initializing
-            }
-        }, 350);
     });
 
     // Keep preview in sync with latest saved CV data when user returns to tab.

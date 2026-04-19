@@ -13,6 +13,35 @@
     $website = data_get($cv, 'personal_website');
     $thumbMode = ($layout === 'layouts.thumb');
 
+    $photoPreview = trim((string) data_get($cv, 'photo_preview_url'));
+    $photoPath = trim((string) data_get($cv, 'photo_path'));
+    if ($photoPreview !== '') {
+        $photo = $photoPreview;
+    } elseif ($photoPath !== '') {
+        if (
+            preg_match('/^(https?:)?\/\//i', $photoPath)
+            || str_starts_with($photoPath, 'data:')
+            || str_starts_with($photoPath, 'blob:')
+            || str_starts_with($photoPath, '/storage/')
+        ) {
+            $photo = $photoPath;
+        } else {
+            $normalizedPhotoPath = ltrim($photoPath, '/');
+            $photo = str_starts_with($normalizedPhotoPath, 'storage/')
+                ? '/'.$normalizedPhotoPath
+                : '/storage/'.$normalizedPhotoPath;
+        }
+    } else {
+        $photo = null;
+    }
+
+    $nameParts = preg_split('/\s+/', trim((string) $name)) ?: [];
+    $initials = collect($nameParts)
+        ->filter()
+        ->map(fn ($part) => strtoupper((string) \Illuminate\Support\Str::substr($part, 0, 1)))
+        ->take(2)
+        ->join('');
+
     $accent = '#000000'; 
     $themes = [
         '#000000' => ['accent' => '#000000', 'deep' => '#000000', 'soft' => '#f3f3f3'],
@@ -73,6 +102,38 @@
     flex-direction: column;
     height: 100%;
     overflow: visible;
+}
+
+.cv-henry-photo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 26px;
+}
+
+.cv-henry-photo {
+    width: {{ $thumbMode ? '112px' : '132px' }};
+    height: {{ $thumbMode ? '112px' : '132px' }};
+    border-radius: 999px;
+    object-fit: cover;
+    border: 4px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.cv-henry-photo-fallback {
+    width: {{ $thumbMode ? '112px' : '132px' }};
+    height: {{ $thumbMode ? '112px' : '132px' }};
+    border-radius: 999px;
+    border: 4px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-head);
+    font-size: {{ $thumbMode ? '30px' : '36px' }};
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.08);
 }
 
 /* Nama Besar di Kiri */
@@ -304,6 +365,14 @@
     
     <!-- SIDEBAR KIRI (GELAP) -->
     <aside class="cv-sidebar-left">
+        <div class="cv-henry-photo-wrap">
+            @if($photo)
+                <img src="{{ $photo }}" alt="Photo" class="cv-henry-photo">
+            @else
+                <div class="cv-henry-photo-fallback">{{ $initials !== '' ? $initials : 'CV' }}</div>
+            @endif
+        </div>
+
         <!-- Nama & Role -->
         <h1 class="cv-henry-name {{ $isPlaceholder('personal_name') ? 'cv-placeholder' : '' }}">{{ $thumbMode ? Str::limit($name, 20) : $name }}</h1>
         <div class="cv-henry-role {{ $isPlaceholder('title') ? 'cv-placeholder' : '' }}">{{ $title }}</div>

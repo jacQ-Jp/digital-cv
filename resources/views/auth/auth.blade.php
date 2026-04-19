@@ -12,170 +12,223 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Masuk / Daftar - CV Builder Platform</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg-body: #050505;
+            --primary: #7c3aed;
+            --primary-hover: #9333ea;
+            --text-main: #ffffff;
+            --text-muted: rgba(255,255,255,0.45);
+            --border-color: rgba(255,255,255,0.08);
+            --input-bg: rgba(255,255,255,0.03);
+            --error: #ef4444;
+        }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: #050505;
-            color: #fff;
+            background-color: var(--bg-body);
+            color: var(--text-main);
             min-height: 100vh;
             overflow-x: hidden;
             display: flex;
             flex-direction: column;
+            -webkit-font-smoothing: antialiased;
         }
 
+        /* Background Elements */
         .lp-bg-orb { position: absolute; border-radius: 50%; pointer-events: none; z-index: 0; }
-        .lp-bg-orb-1 { width: 450px; height: 450px; top: -14%; left: -10%; background: radial-gradient(circle, rgba(124,58,237,.1), transparent 60%); filter: blur(60px); }
-        .lp-bg-orb-2 { width: 380px; height: 380px; bottom: -12%; right: -8%; background: radial-gradient(circle, rgba(168,85,247,.07), transparent 60%); filter: blur(60px); }
-        .lp-bg-grid { position: absolute; inset: 0; opacity: .015; background-image: linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px); background-size: 70px 70px; pointer-events: none; z-index: 0; }
+        .lp-bg-orb-1 { width: 400px; height: 400px; top: -10%; left: -10%; background: radial-gradient(circle, rgba(124,58,237,.12), transparent 60%); filter: blur(80px); }
+        .lp-bg-orb-2 { width: 350px; height: 350px; bottom: -10%; right: -10%; background: radial-gradient(circle, rgba(168,85,247,.08), transparent 60%); filter: blur(80px); }
+        .lp-bg-grid { position: absolute; inset: 0; opacity: .03; background-image: linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px); background-size: 60px 60px; pointer-events: none; z-index: 0; }
 
+        /* Navigation */
         .lp-nav {
             position: relative;
             z-index: 100;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1.25rem 2rem;
-            backdrop-filter: blur(10px);
-            background: rgba(8, 5, 26, 0.8);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 1rem 2rem;
+            backdrop-filter: blur(8px);
+            background: rgba(5, 5, 5, 0.6);
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .lp-logo { font-size: 1.25rem; font-weight: 800; color: #fff; text-decoration: none; letter-spacing: -0.03em; display: flex; align-items: center; gap: 0.5rem; }
+        .lp-logo { font-size: 1.15rem; font-weight: 700; color: #fff; text-decoration: none; letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.5rem; }
         .lp-logo span { color: #a78bfa; }
         .lp-links { display: flex; gap: 2rem; list-style: none; }
-        .lp-links a { text-decoration: none; color: rgba(255,255,255,.7); font-size: 0.9rem; font-weight: 500; transition: color 0.3s; }
-        .lp-links a:hover { color: #a78bfa; }
+        .lp-links a { text-decoration: none; color: var(--text-muted); font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+        .lp-links a:hover { color: #fff; }
 
         .lp-btn-nav {
-            padding: 0.6rem 1.4rem;
-            background: linear-gradient(135deg,#7c3aed,#9333ea);
+            padding: 0.55rem 1.25rem;
+            background: var(--primary);
             color: #fff;
             text-decoration: none;
             border-radius: 99px;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            transition: box-shadow 0.3s, transform 0.2s;
+            transition: all 0.2s ease;
         }
+        .lp-btn-nav:hover { background: var(--primary-hover); transform: translateY(-1px); }
 
-        .lp-btn-nav:hover { box-shadow: 0 4px 15px rgba(124,58,237,.4); transform: translateY(-1px); }
         @media (max-width: 768px) { .lp-links { display: none; } }
 
-        .lp-main { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; padding: 2rem 1.25rem; z-index: 10; }
+        /* Main Container */
+        .lp-main { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; padding: 2rem 1rem; z-index: 10; }
 
         .lp-box {
             position: relative;
             width: 100%;
-            max-width: 900px;
-            min-height: 640px;
-            background: rgba(255,255,255,.035);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255,255,255,.06);
-            border-radius: 28px;
+            max-width: 840px;
+            min-height: 510px; /* DIKURANGI: Dari 560px menjadi 510px */
+            background: rgba(20, 20, 23, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
             overflow: hidden;
-            box-shadow: 0 25px 60px rgba(0,0,0,.3);
-            animation: lpEntry .8s cubic-bezier(.16,1,.3,1) both;
+            box-shadow: 0 20px 50px rgba(0,0,0,.4);
+            animation: lpEntry .6s cubic-bezier(.2,1,.2,1) both;
         }
 
-        @keyframes lpEntry { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }
+        @keyframes lpEntry { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
 
-        .lp-panels { display: flex; min-height: 100%; position: relative; z-index: 1; }
-        .lp-pnl { width: 50%; display: flex; align-items: center; justify-content: center; padding: 2.5rem 2rem; }
-        .lp-pnl-in { width: 100%; max-width: 310px; }
+        /* Panels & Forms */
+        .lp-panels { display: flex; min-height: 100%; position: relative; z-index: 2; }
+        .lp-pnl { width: 50%; display: flex; align-items: center; justify-content: center; padding: 2rem 2rem; /* DIKURANGI: Dari 2.5rem */ }
+        .lp-pnl-in { width: 100%; max-width: 300px; }
 
-        .lp-h { font-size: 1.5rem; font-weight: 800; color: #fff; margin: 0 0 .25rem; letter-spacing: -.02em; }
-        .lp-sub { font-size: .82rem; color: rgba(255,255,255,.3); margin: 0 0 1.1rem; line-height: 1.55; }
+        .lp-h { font-size: 1.4rem; font-weight: 700; color: #fff; margin: 0 0 .25rem; /* DIKURANGI: Dari .5rem */ letter-spacing: -0.01em; }
+        .lp-sub { font-size: .85rem; color: var(--text-muted); margin: 0 0 1.1rem; /* DIKURANGI: Dari 1.5rem */ line-height: 1.5; }
 
         .lp-alert {
-            border: 1px solid rgba(16,185,129,.38);
-            background: rgba(16,185,129,.12);
-            color: #a7f3d0;
-            border-radius: 9px;
-            padding: .58rem .65rem;
+            border: 1px solid rgba(16,185,129,.3);
+            background: rgba(16,185,129,.1);
+            color: #6ee7b7;
+            border-radius: 8px;
+            padding: .5rem .75rem;
             font-size: .75rem;
-            margin-bottom: .75rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .lp-fg { margin-bottom: 1.1rem; }
-        .lp-fg label { display: block; font-size: .68rem; font-weight: 600; color: rgba(255,255,255,.35); margin-bottom: .3rem; text-transform: uppercase; letter-spacing: .06em; }
+        .lp-fg { margin-bottom: 0.85rem; /* DIKURANGI: Dari 1rem */ position: relative; }
+        .lp-fg label { display: block; font-size: .75rem; font-weight: 600; color: var(--text-muted); margin-bottom: .35rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        
         .lp-iw { position: relative; display: flex; align-items: center; }
-        .lp-ic { position: absolute; left: 12px; color: rgba(255,255,255,.15); width: 16px; height: 16px; pointer-events: none; }
+        .lp-ic { position: absolute; left: 12px; color: rgba(255,255,255,.25); width: 18px; height: 18px; pointer-events: none; transition: color 0.2s; }
 
         .lp-in {
             width: 100%;
-            padding: .62rem .75rem .62rem 2.5rem;
-            border: 1.5px solid rgba(255,255,255,.07);
-            border-radius: 11px;
-            font-size: .85rem;
+            padding: .6rem .75rem .6rem 2.6rem; /* DIKURANGI: Sedikit lebih ramping */
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: .9rem;
             color: #fff;
-            background: rgba(255,255,255,.035);
+            background: var(--input-bg);
             outline: none;
-            transition: border-color .3s, box-shadow .3s;
+            transition: all 0.2s ease;
             font-family: inherit;
         }
 
-        .lp-in::placeholder { color: rgba(255,255,255,.18); }
-        .lp-in:focus { border-color: rgba(168,85,247,.4); box-shadow: 0 0 0 3px rgba(168,85,247,.08); }
-        .lp-in.lp-err-input,
-        .lp-in.lp-err-input:focus { border-color: rgba(239,68,68,.4); box-shadow: 0 0 0 3px rgba(239,68,68,.06); }
+        .lp-in::placeholder { color: rgba(255,255,255,.2); }
 
-        .lp-ptog { position: absolute; right: 11px; background: none; border: none; color: rgba(255,255,255,.18); cursor: pointer; padding: 4px; display: flex; align-items: center; }
-        .lp-ptog:hover { color: rgba(255,255,255,.45); }
-        .lp-ptog svg { width: 16px; height: 16px; display: block; }
+        .lp-in:-webkit-autofill,
+        .lp-in:-webkit-autofill:hover,
+        .lp-in:-webkit-autofill:focus,
+        .lp-in:-webkit-autofill:active {
+            -webkit-text-fill-color: #fff;
+            caret-color: #fff;
+            border: 1px solid var(--border-color);
+            -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset;
+            box-shadow: 0 0 0 1000px var(--input-bg) inset;
+            transition: background-color 9999s ease-in-out 0s;
+        }
 
-        .lp-err { font-size: .75rem; color: #f87171; margin-top: .25rem; padding-left: 2px; min-height: 1.2em; }
+        .lp-in:-moz-autofill {
+            color: #fff;
+            caret-color: #fff;
+            box-shadow: 0 0 0 1000px var(--input-bg) inset;
+        }
+        
+        .lp-in:focus { 
+            border-color: rgba(124,58,237,.5); 
+            background: rgba(255,255,255,0.05);
+            box-shadow: 0 0 0 3px rgba(124,58,237,.1); 
+        }
+        .lp-in:focus + .lp-ic { color: #a78bfa; }
+        
+        .lp-in.lp-err-input, .lp-in.lp-err-input:focus { border-color: rgba(239,68,68,.5); box-shadow: 0 0 0 3px rgba(239,68,68,.1); }
 
-        .lp-ck { display: flex; align-items: center; gap: .5rem; cursor: pointer; margin-bottom: 1.4rem; user-select: none; }
+        .lp-ptog { position: absolute; right: 10px; background: none; border: none; color: rgba(255,255,255,.2); cursor: pointer; padding: 4px; display: flex; align-items: center; transition: color 0.2s; }
+        .lp-ptog:hover { color: #fff; }
+        .lp-ptog svg { width: 18px; height: 18px; display: block; }
+
+        .lp-err { font-size: .75rem; color: var(--error); margin-top: .25rem; padding-left: 2px; min-height: 1.1em; font-weight: 500; }
+
+        /* Checkbox */
+        .lp-ck { display: flex; align-items: center; gap: .6rem; cursor: pointer; margin-bottom: 1.1rem; /* DIKURANGI: Dari 1.4rem */ user-select: none; }
         .lp-ck input { position: absolute; opacity: 0; width: 0; height: 0; }
-        .lp-ckb { width: 17px; height: 17px; border-radius: 5px; border: 1.5px solid rgba(255,255,255,.1); background: rgba(255,255,255,.035); display: flex; align-items: center; justify-content: center; }
-        .lp-ckb svg { width: 11px; height: 11px; color: #fff; opacity: 0; transform: scale(.4); transition: all .2s; }
-        .lp-ck input:checked + .lp-ckb { background: #7c3aed; border-color: #7c3aed; box-shadow: 0 2px 8px rgba(124,58,237,.35); }
+        .lp-ckb { width: 18px; height: 18px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .lp-ckb svg { width: 12px; height: 12px; color: #fff; opacity: 0; transform: scale(.5); transition: all .2s cubic-bezier(.5,1.5,.5,1); }
+        
+        .lp-ck input:checked + .lp-ckb { background: var(--primary); border-color: var(--primary); }
         .lp-ck input:checked + .lp-ckb svg { opacity: 1; transform: scale(1); }
-        .lp-ckt { font-size: .82rem; color: rgba(255,255,255,.3); }
+        .lp-ckt { font-size: .85rem; color: var(--text-muted); }
 
+        /* Buttons */
         .lp-btn {
             width: 100%;
-            padding: .72rem;
+            padding: .7rem; /* DIKURANGI: Dari .75rem */
             border: none;
-            border-radius: 11px;
-            background: linear-gradient(135deg,#7c3aed,#9333ea);
+            border-radius: 10px;
+            background: linear-gradient(135deg,var(--primary), var(--primary-hover));
             color: #fff;
-            font-size: .875rem;
+            font-size: .9rem;
             font-weight: 600;
             cursor: pointer;
-            transition: box-shadow .3s, transform .15s;
+            transition: all 0.2s ease;
             font-family: inherit;
+            letter-spacing: 0.02em;
         }
 
-        .lp-btn:hover { box-shadow: 0 6px 24px rgba(124,58,237,.3); transform: translateY(-1px); }
+        .lp-btn:hover { box-shadow: 0 4px 15px rgba(124,58,237,.25); transform: translateY(-1px); }
+        .lp-btn:active { transform: translateY(0); }
 
-        .lp-btm { text-align: center; margin-top: 1.1rem; font-size: .82rem; color: rgba(255,255,255,.25); }
-        .lp-btm a { color: #a78bfa; text-decoration: none; font-weight: 600; transition: color .2s; cursor: pointer; }
+        .lp-btm { text-align: center; margin-top: 0.9rem; /* DIKURANGI: Dari 1.25rem */ font-size: .85rem; color: var(--text-muted); }
+        .lp-btm a { color: #a78bfa; text-decoration: none; font-weight: 600; transition: color 0.2s; cursor: pointer; }
         .lp-btm a:hover { color: #c4b5fd; }
 
+        /* Overlay Animation */
         .lp-ov {
             position: absolute;
             top: 0;
             left: 50%;
             width: 50%;
             height: 100%;
-            background: linear-gradient(135deg,#0c0518 0%,#140d22 100%);
-            transition: left .8s cubic-bezier(.65,0,.35,1);
+            background: linear-gradient(135deg,#1e1b2e 0%,#2d2640 100%);
+            transition: left .7s cubic-bezier(.65,0,.35,1);
             z-index: 10;
             overflow: hidden;
-            border-radius: 28px 0 0 28px;
+            border-radius: 24px 0 0 24px;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.2) inset;
         }
 
-        .lp-ov.lp-at-l { left: 0; border-radius: 0 28px 28px 0; }
+        .lp-ov.lp-at-l { left: 0; border-radius: 0 24px 24px 0; box-shadow: 10px 0 30px rgba(0,0,0,0.2) inset; }
 
-        .lp-ov-c1, .lp-ov-c2 { position: absolute; border-radius: 50%; border: 1px solid rgba(255,255,255,.04); pointer-events: none; }
-        .lp-ov-c1 { width: 180px; height: 180px; top: -30px; right: -50px; }
-        .lp-ov-c2 { width: 120px; height: 120px; bottom: -25px; left: -30px; }
-        .lp-ov-c3 { width: 70px; height: 70px; top: 42%; left: 28%; background: rgba(124,58,237,.04); border: none; border-radius: 50%; pointer-events: none; }
-        .lp-ov-dots { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.025) 1px, transparent 1px); background-size: 24px 24px; pointer-events: none; }
+        /* Decorations inside Overlay */
+        .lp-ov-c1, .lp-ov-c2 { position: absolute; border-radius: 50%; border: 1px solid rgba(255,255,255,.05); pointer-events: none; }
+        .lp-ov-c1 { width: 140px; height: 140px; top: -40px; right: -40px; }
+        .lp-ov-c2 { width: 100px; height: 100px; bottom: -30px; left: -30px; }
+        .lp-ov-c3 { width: 60px; height: 60px; top: 40%; left: 30%; background: radial-gradient(circle, rgba(124,58,237,.15), transparent); border: none; border-radius: 50%; pointer-events: none; filter: blur(20px); }
+        
+        .lp-ov-dots { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.06) 1px, transparent 1px); background-size: 20px 20px; pointer-events: none; }
 
         .lp-ovc {
             position: absolute;
@@ -187,8 +240,8 @@
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 2.5rem 2rem;
-            transition: transform .8s cubic-bezier(.65,0,.35,1), opacity .6s ease;
+            padding: 2rem;
+            transition: transform .7s cubic-bezier(.65,0,.35,1), opacity .5s ease;
         }
 
         .lp-ovcr { left: 0; transform: translateX(0); opacity: 1; }
@@ -196,32 +249,34 @@
         .lp-ovcl { left: 0; transform: translateX(100%); opacity: 0; pointer-events: none; }
         .lp-at-l .lp-ovcl { transform: translateX(0); opacity: 1; pointer-events: auto; }
 
-        .lp-ov-icon { width: 60px; height: 60px; border-radius: 16px; background: rgba(124,58,237,.1); display: flex; align-items: center; justify-content: center; margin-bottom: 1.4rem; }
-        .lp-ov-icon svg { width: 28px; height: 28px; color: #a78bfa; }
-        .lp-ov-h { font-size: 1.3rem; font-weight: 800; color: #fff; margin: 0 0 .45rem; letter-spacing: -.01em; }
-        .lp-ov-p { font-size: .82rem; color: rgba(255,255,255,.35); margin: 0 0 1.6rem; line-height: 1.6; max-width: 250px; }
+        .lp-ov-icon { width: 52px; height: 52px; /* DIKURANGI: Dari 56px */ border-radius: 14px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; margin-bottom: 1.1rem; border: 1px solid rgba(255,255,255,0.05); }
+        .lp-ov-icon svg { width: 24px; height: 24px; color: #a78bfa; }
+        .lp-ov-h { font-size: 1.2rem; font-weight: 700; color: #fff; margin: 0 0 .5rem; letter-spacing: -0.01em; }
+        .lp-ov-p { font-size: .85rem; color: rgba(255,255,255,.5); margin: 0 0 1.5rem; line-height: 1.5; max-width: 240px; }
 
         .lp-ov-btn {
             background: transparent;
-            border: 1.5px solid rgba(255,255,255,.18);
-            color: rgba(255,255,255,.85);
-            padding: .68rem 1.8rem;
-            border-radius: 11px;
+            border: 1px solid rgba(255,255,255,.25);
+            color: #fff;
+            padding: .6rem 1.4rem;
+            border-radius: 10px;
             font-size: .85rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all .25s;
+            transition: all 0.2s;
             font-family: inherit;
         }
 
-        .lp-ov-btn:hover { border-color: rgba(168,85,247,.4); background: rgba(124,58,237,.06); color: #fff; }
+        .lp-ov-btn:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
 
+        /* Mobile Responsiveness */
         @media (max-width: 768px) {
-            .lp-box { height: auto; min-height: auto; border-radius: 20px; max-width: 440px; }
+            .lp-box { height: auto; min-height: auto; border-radius: 16px; max-width: 400px; border: 1px solid var(--border-color); background: rgba(20,20,23,0.9); }
             .lp-panels { flex-direction: column; }
-            .lp-pnl { width: 100%; padding: 2rem 1.5rem; display: none; }
+            .lp-pnl { width: 100%; padding: 1.8rem 1.5rem; display: none; animation: fadeIn 0.4s ease; }
             .lp-pnl.active-mobile { display: flex; }
             .lp-ov { display: none; }
+            @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
         }
     </style>
 </head>
@@ -234,7 +289,6 @@
         <ul class="lp-links">
             <li><a href="{{ url('/#services') }}">Fitur</a></li>
             <li><a href="{{ url('/#templates') }}">Template</a></li>
-            <li><a href="{{ url('/#cases') }}">Portfolio</a></li>
             <li><a href="{{ url('/#contact') }}">Kontak</a></li>
         </ul>
         <a href="{{ route('cv-builder.templates') }}" class="lp-btn-nav">Buat CV</a>
@@ -247,6 +301,7 @@
     <div class="lp-main">
         <div class="lp-box">
             <div class="lp-panels">
+                <!-- Register Panel -->
                 <div class="lp-pnl {{ $currentPanel === 'register' ? 'active-mobile' : '' }}" id="panel-reg">
                     <div class="lp-pnl-in">
                         <h2 class="lp-h">Buat Akun</h2>
@@ -258,7 +313,7 @@
                                 <label for="reg-name">Nama Lengkap</label>
                                 <div class="lp-iw">
                                     <svg class="lp-ic" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
-                                    <input type="text" name="name" id="reg-name" class="lp-in @if($triedRegister && $errors->has('name')) lp-err-input @endif" value="{{ $triedRegister ? old('name') : '' }}" placeholder="John Doe" required>
+                                    <input type="text" name="name" id="reg-name" class="lp-in @if($triedRegister && $errors->has('name')) lp-err-input @endif" value="{{ $triedRegister ? old('name') : '' }}" placeholder="John Doe" required autocomplete="name">
                                 </div>
                                 <div class="lp-err">@if($triedRegister) @error('name') {{ $message }} @enderror @endif</div>
                             </div>
@@ -267,7 +322,7 @@
                                 <label for="reg-email">Email</label>
                                 <div class="lp-iw">
                                     <svg class="lp-ic" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/></svg>
-                                    <input type="email" name="email" id="reg-email" class="lp-in @if($triedRegister && $errors->has('email')) lp-err-input @endif" value="{{ $triedRegister ? old('email') : '' }}" placeholder="nama@email.com" required>
+                                    <input type="email" name="email" id="reg-email" class="lp-in @if($triedRegister && $errors->has('email')) lp-err-input @endif" value="{{ $triedRegister ? old('email') : '' }}" placeholder="nama@email.com" required autocomplete="email">
                                 </div>
                                 <div class="lp-err">@if($triedRegister) @error('email') {{ $message }} @enderror @endif</div>
                             </div>
@@ -276,7 +331,7 @@
                                 <label for="reg-pass">Password</label>
                                 <div class="lp-iw">
                                     <svg class="lp-ic" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z"/></svg>
-                                    <input type="password" name="password" id="reg-pass" class="lp-in @if($triedRegister && $errors->has('password')) lp-err-input @endif" placeholder="Buat password" required>
+                                    <input type="password" name="password" id="reg-pass" class="lp-in @if($triedRegister && $errors->has('password')) lp-err-input @endif" placeholder="Buat password" required autocomplete="new-password">
                                     <button type="button" class="lp-ptog toggle-pass" aria-label="Tampilkan password" data-target="reg-pass">
                                         <span class="eye-on"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg></span>
                                         <span class="eye-off" style="display:none"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12c1.292 4.338 5.31 7.5 10.066 7.5.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/></svg></span>
@@ -289,7 +344,7 @@
                                 <label for="reg-pass-conf">Konfirmasi Password</label>
                                 <div class="lp-iw">
                                     <svg class="lp-ic" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
-                                    <input type="password" name="password_confirmation" id="reg-pass-conf" class="lp-in @if($triedRegister && $errors->has('password_confirmation')) lp-err-input @endif" placeholder="Ulangi password" required>
+                                    <input type="password" name="password_confirmation" id="reg-pass-conf" class="lp-in @if($triedRegister && $errors->has('password_confirmation')) lp-err-input @endif" placeholder="Ulangi password" required autocomplete="new-password">
                                 </div>
                                 <div class="lp-err">@if($triedRegister) @error('password_confirmation') {{ $message }} @enderror @endif</div>
                             </div>
@@ -303,6 +358,7 @@
                     </div>
                 </div>
 
+                <!-- Login Panel -->
                 <div class="lp-pnl {{ $currentPanel === 'login' ? 'active-mobile' : '' }}" id="panel-log">
                     <div class="lp-pnl-in">
                         <h2 class="lp-h">Masuk</h2>
@@ -318,7 +374,7 @@
                                 <label for="log-email">Email</label>
                                 <div class="lp-iw">
                                     <svg class="lp-ic" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/></svg>
-                                    <input type="email" name="email" id="log-email" class="lp-in @if($triedLogin && $errors->has('email')) lp-err-input @endif" value="{{ $triedLogin ? old('email') : '' }}" placeholder="nama@email.com" required>
+                                    <input type="email" name="email" id="log-email" class="lp-in @if($triedLogin && $errors->has('email')) lp-err-input @endif" value="{{ $triedLogin ? old('email') : '' }}" placeholder="nama@email.com" required autocomplete="email">
                                 </div>
                                 <div class="lp-err">@if($triedLogin) @error('email') {{ $message }} @enderror @endif</div>
                             </div>
@@ -327,7 +383,7 @@
                                 <label for="log-pass">Password</label>
                                 <div class="lp-iw">
                                     <svg class="lp-ic" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z"/></svg>
-                                    <input type="password" name="password" id="log-pass" class="lp-in @if($triedLogin && $errors->has('password')) lp-err-input @endif" placeholder="Masukkan password" required>
+                                    <input type="password" name="password" id="log-pass" class="lp-in @if($triedLogin && $errors->has('password')) lp-err-input @endif" placeholder="Masukkan password" required autocomplete="current-password">
                                     <button type="button" class="lp-ptog toggle-pass" aria-label="Tampilkan password" data-target="log-pass">
                                         <span class="eye-on"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg></span>
                                         <span class="eye-off" style="display:none"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12c1.292 4.338 5.31 7.5 10.066 7.5.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/></svg></span>
@@ -352,6 +408,7 @@
                 </div>
             </div>
 
+            <!-- Overlay -->
             <div class="lp-ov {{ $currentPanel === 'login' ? 'lp-at-l' : '' }}" id="lpOv">
                 <div class="lp-ov-dots"></div>
                 <div class="lp-ov-c1"></div>
