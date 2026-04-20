@@ -35,8 +35,8 @@
         <div class="mb-3">
             <label class="form-label">Status</label>
             <select name="status" class="form-select" required>
-                <option value="draft" @selected(old('status', $cv->status)==='draft')>draft</option>
-                <option value="published" @selected(old('status', $cv->status)==='published')>published</option>
+                <option value="draft" @selected(old('status', $cv->status)==='draft')>Draft</option>
+                <option value="published" @selected(old('status', $cv->status)==='published')>Public Link</option>
             </select>
             @error('status')<div class="text-danger small">{{ $message }}</div>@enderror
         </div>

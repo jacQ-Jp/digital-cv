@@ -15,8 +15,17 @@ class Cv extends Model
         'user_id',
         'title',
         'summary',
+        'personal_name',
+        'personal_email',
+        'personal_phone',
+        'personal_location',
+        'personal_linkedin',
+        'personal_website',
+        'photo_path',
+        'accent_color',
         'template_slug',
         'status',
+        'public_uuid',
     ];
 
     public function user(): BelongsTo
@@ -42,5 +51,20 @@ class Cv extends Model
     public function template(): BelongsTo
     {
         return $this->belongsTo(Template::class, 'template_slug', 'slug');
+    }
+
+    public function publishingErrors(): array
+    {
+        $errors = [];
+
+        if (blank(trim((string) $this->personal_name))) {
+            $errors['personal_name'] = 'Name is required before publishing.';
+        }
+
+        if (blank(trim((string) $this->personal_email))) {
+            $errors['personal_email'] = 'Email is required before publishing.';
+        }
+
+        return $errors;
     }
 }

@@ -17,7 +17,9 @@ class RegisteredUserController extends Controller
 {
     public function create(): View
     {
-        return view('auth.register');
+        return view('auth.auth', [
+            'activePanel' => 'register',
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -28,8 +30,10 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        $userRoleId = Role::query()->where('slug', 'user')->value('id');
-        abort_unless($userRoleId, 500, 'Role "user" not seeded.');
+        $userRoleId = Role::query()->firstOrCreate(
+            ['slug' => 'user'],
+            ['name' => 'User', 'slug' => 'user']
+        )->id;
 
         $user = User::create([
             'name' => $data['name'],

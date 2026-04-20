@@ -7,9 +7,24 @@
             <h1 class="h3 mb-1">{{ $cv->title }}</h1>
             <div class="text-muted small">Status: {{ $cv->status }} | Template: {{ $cv->template?->name ?? $cv->template_slug }}</div>
             <div class="mt-2 d-flex flex-wrap gap-2">
-                <a class="btn btn-sm btn-outline-secondary" href="{{ route('cvs.render', $cv) }}">Preview Render</a>
+                <a class="btn btn-sm btn-outline-secondary" href="{{ route('cvs.render', $cv) }}" target="_blank" rel="noopener">Preview Render</a>
+                <a
+                    href="{{ route('cvs.wizard.pdf', $cv) }}"
+                    class="btn btn-sm btn-outline-dark"
+                    target="_blank"
+                    rel="noopener"
+                >
+                    Save PDF
+                </a>
                 @if($cv->status === 'published')
-                    <a class="btn btn-sm btn-outline-success" href="{{ route('cvs.public', $cv) }}" target="_blank" rel="noopener">Public Link</a>
+                    <button
+                        type="button"
+                        id="copyPublicBtn"
+                        class="btn btn-sm btn-outline-success"
+                        data-public-url="{{ route('cvs.public', ['token' => $cv->public_uuid ?: $cv->id]) }}"
+                    >
+                        Copy Public Link
+                    </button>
                 @endif
             </div>
         </div>
@@ -85,7 +100,7 @@
                     </div>
                     <div class="d-flex flex-wrap gap-2">
                         @forelse($cv->skills as $skill)
-                            <span class="badge text-bg-secondary">{{ $skill->name }}@if($skill->level) ({{ $skill->level }})@endif</span>
+                            <span class="badge text-bg-secondary">{{ $skill->name }}</span>
                         @empty
                             <span class="text-muted">No skills yet.</span>
                         @endforelse
@@ -99,4 +114,111 @@
         <a class="btn btn-outline-secondary" href="{{ route('cvs.index') }}">Back</a>
     </div>
 </div>
+
+<script>
+(() => {
+    const toastId = 'copyLinkToast';
+
+    function showToast(message) {
+        let toast = document.getElementById(toastId);
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = toastId;
+            toast.style.position = 'fixed';
+            toast.style.right = '16px';
+            toast.style.top = window.innerWidth <= 768 ? '76px' : '86px';
+            toast.style.left = 'auto';
+            toast.style.bottom = 'auto';
+            toast.style.display = 'inline-flex';
+            toast.style.alignItems = 'center';
+            toast.style.justifyContent = 'center';
+            toast.style.width = 'fit-content';
+            toast.style.maxWidth = 'min(90vw, 360px)';
+            toast.style.minHeight = '46px';
+            toast.style.background = 'rgba(2, 6, 23, 0.92)';
+            toast.style.border = '1px solid rgba(139, 92, 246, 0.72)';
+            toast.style.color = '#f8fafc';
+            toast.style.padding = '0.72rem 1rem';
+            toast.style.borderRadius = '12px';
+            toast.style.fontSize = '0.92rem';
+            toast.style.fontWeight = '700';
+            toast.style.letterSpacing = '0.01em';
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-12px) scale(0.98)';
+            toast.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
+            toast.style.pointerEvents = 'none';
+            toast.style.zIndex = '2500';
+            toast.style.boxShadow = '0 14px 28px rgba(15, 23, 42, 0.44), 0 0 0 1px rgba(139, 92, 246, 0.2)';
+            toast.style.backdropFilter = 'blur(10px)';
+            document.body.appendChild(toast);
+        }
+
+        toast.textContent = message;
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0) scale(1)';
+
+        if (toast._hideTimer) {
+            clearTimeout(toast._hideTimer);
+        }
+
+        toast._hideTimer = setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-12px) scale(0.98)';
+        }, 1500);
+    }
+
+    async function copyText(text) {
+        if (!text) return false;
+
+        if (navigator.clipboard && window.isSecureContext) {
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch (error) {
+                // Continue to fallback.
+            }
+        }
+
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        let copied = false;
+        try {
+            copied = document.execCommand('copy');
+        } catch (error) {
+            copied = false;
+        }
+
+        document.body.removeChild(textarea);
+        return copied;
+    }
+
+    const copyBtn = document.getElementById('copyPublicBtn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+            const url = copyBtn.getAttribute('data-public-url');
+            if (!url) return;
+
+            const copied = await copyText(url);
+            if (copied) {
+                const prev = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                showToast('link copied!');
+                setTimeout(() => {
+                    copyBtn.textContent = prev;
+                }, 1200);
+            } else {
+                window.prompt('Copy this link:', url);
+            }
+        });
+    }
+
+})();
+</script>
 @endsection

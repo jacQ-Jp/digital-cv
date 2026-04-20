@@ -28,11 +28,11 @@ class CvEducationController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(Cv $cv): View
+    public function create(Cv $cv): RedirectResponse
     {
         abort_unless($cv->user_id === Auth::id(), 403);
 
-        return view('educations.create', compact('cv'));
+        return redirect()->route('cvs.wizard', $cv);
     }
 
     /**
@@ -44,7 +44,7 @@ class CvEducationController extends Controller
 
         $cv->educations()->create($request->validated());
 
-        return redirect()->route('cvs.educations.index', $cv);
+        return redirect()->route('cvs.skills.create', $cv);
     }
 
     /**

@@ -3,210 +3,217 @@
 namespace App\Http\Controllers\Cv;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreCvRequest;
-use App\Http\Requests\UpdateCvRequest;
 use App\Models\Cv;
 use App\Models\Template;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
+use Illuminate\Support\Str;
 
 class CvController extends Controller
 {
-    // Step 1: show active templates for selection
-    public function selectTemplate(): View
+    public function index()
     {
-        $templates = Template::query()
-            ->where('is_active', true)
-            ->orderByDesc('is_default')
-            ->orderBy('name')
+        $cvs = Cv::query()
+            ->where('user_id', auth()->id())
+            ->with(['experiences', 'educations', 'skills', 'template'])
+            ->when(request('q'), fn($q, $s) => $q->where('title', 'like', "%{$s}%"))
+            ->when(request('status'), fn($q, $s) => $q->where('status', $s))
+            ->when(request('template'), fn($q, $s) => $q->where('template_slug', $s))
+            ->latest('updated_at')
             ->get();
 
+        $templates = Template::where('is_active', true)->get();
+
+        return view('cvs.index', compact('cvs', 'templates'));
+    }
+
+    public function selectTemplate()
+    {
+        $templates = Template::where('is_active', true)->get();
         return view('cvs.select-template', compact('templates'));
     }
 
-    // Step 1: persist template selection in session (fallback to default)
-    public function saveTemplateSelection(Request $request): RedirectResponse
+    public function saveTemplateSelection(Request $request)
     {
         $request->validate([
-            'template_slug' => ['nullable', 'string', 'exists:templates,slug'],
-            'redirect_to' => ['nullable', 'string'],
+            'template_slug' => 'required|exists:templates,slug',
+            'title' => 'nullable|string|max:255',
         ]);
-
-        $selectedSlug = $request->input('template_slug');
-
-        $template = null;
-        if ($selectedSlug) {
-            $template = Template::query()->where('is_active', true)->where('slug', $selectedSlug)->first();
-        }
-
-        if (! $template) {
-            $template = Template::query()->where('is_default', true)->first()
-                ?? Template::query()->where('is_active', true)->orderBy('id')->first();
-        }
-
-        if (! $template) {
-            abort(422, 'No active template available.');
-        }
-
-        session(['cv_builder.template_slug' => $template->slug]);
-
-        $redirectTo = $request->input('redirect_to');
-        if (is_string($redirectTo) && str_starts_with($redirectTo, '/')) {
-            return redirect($redirectTo);
-        }
-
-        return redirect()->route('cvs.create');
-    }
-
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(): View
-    {
-        $cvs = Cv::query()
-            ->where('user_id', Auth::id())
-            ->latest()
-            ->get();
-
-        return view('cvs.index', compact('cvs'));
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create(): View|RedirectResponse
-    {
-        $selectedTemplateSlug = session('cv_builder.template_slug');
-
-        // Hard-enforce: must pick a template first (step 1).
-        if (! $selectedTemplateSlug) {
-            return redirect()->route('cv-builder.templates');
-        }
-
-        $templates = Template::query()->where('is_active', true)->orderBy('name')->get();
-
-        return view('cvs.create', [
-            'templates' => $templates,
-            'selectedTemplateSlug' => $selectedTemplateSlug,
-        ]);
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreCvRequest $request): RedirectResponse
-    {
-        $templateSlug = $request->validated('template_slug');
 
         $cv = Cv::create([
-            'user_id' => Auth::id(),
-            'title' => $request->validated('title'),
-            'summary' => $request->validated('summary'),
-            'template_slug' => $templateSlug,
-            'status' => $request->validated('status'),
+            'user_id' => auth()->id(),
+            'title' => $request->title ?: 'Untitled CV',
+            'template_slug' => $request->template_slug,
+            'status' => 'draft',
+            'public_uuid' => Str::uuid()->toString(),
         ]);
 
-        // Reset builder selection after successful creation.
-        session()->forget('cv_builder.template_slug');
-
-        return redirect()->route('cvs.show', $cv);
+        return redirect()->route('cvs.wizard', $cv);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Cv $cv): View
+    public function show(Cv $cv)
     {
-        abort_unless($cv->user_id === Auth::id(), 403);
-
-        $cv->load(['user', 'template', 'experiences', 'educations', 'skills']);
-
+        $this->own($cv);
+        $cv->load(['experiences', 'educations', 'skills', 'template']);
         return view('cvs.show', compact('cv'));
     }
 
-    /**
-     * Render CV dynamically based on template_slug (private preview).
-     */
-    public function render(Cv $cv): View
+    public function edit(Cv $cv)
     {
-        abort_unless($cv->user_id === Auth::id(), 403);
-
-        $cv->load(['user', 'template', 'experiences', 'educations', 'skills']);
-
-        return $this->renderWithTemplateFallback($cv);
+        $this->own($cv);
+        return redirect()->route('cvs.wizard', $cv);
     }
 
-    /**
-     * Public CV (published only).
-     */
-    public function public(Cv $cv): View
+    public function update(Request $request, Cv $cv) { $this->own($cv); }
+
+    public function destroy(Cv $cv)
     {
-        abort_unless($cv->status === 'published', 404);
-
-        $cv->load(['user', 'template', 'experiences', 'educations', 'skills']);
-
-        return $this->renderWithTemplateFallback($cv);
+        $this->own($cv);
+        $cv->delete();
+        return back()->with('success', 'CV berhasil dihapus.');
     }
 
-    private function renderWithTemplateFallback(Cv $cv): View
+    public function bulkDestroy(Request $request)
     {
-        $slug = $cv->template_slug;
+        $validated = $request->validate([
+            'cv_ids' => ['required', 'array', 'min:1'],
+            'cv_ids.*' => ['integer'],
+        ]);
 
-        // Views are stored in: resources/views/cv/templates/{slug}.blade.php
-        $view = $slug ? "cv.templates.$slug" : null;
+        $ids = collect($validated['cv_ids'])
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
 
-        if ($view && view()->exists($view)) {
-            return view($view, compact('cv'));
+        $deletedCount = Cv::query()
+            ->where('user_id', auth()->id())
+            ->whereIn('id', $ids)
+            ->delete();
+
+        if ($deletedCount < 1) {
+            return back()->withErrors([
+                'bulk_delete' => 'Tidak ada CV valid yang dipilih untuk dihapus.',
+            ]);
         }
 
-        // Prefer DB default if it exists and has a view, otherwise use hard default view.
-        $defaultSlug = Template::query()->where('is_default', true)->value('slug');
-        if ($defaultSlug && view()->exists("cv.templates.$defaultSlug")) {
-            return view("cv.templates.$defaultSlug", compact('cv'));
+        return back()->with('success', $deletedCount . ' CV berhasil dihapus.');
+    }
+
+    public function destroyAll()
+    {
+        $deletedCount = Cv::query()
+            ->where('user_id', auth()->id())
+            ->delete();
+
+        if ($deletedCount < 1) {
+            return back()->withErrors([
+                'bulk_delete' => 'Tidak ada CV untuk dihapus.',
+            ]);
+        }
+
+        return back()->with('success', $deletedCount . ' CV berhasil dihapus.');
+    }
+
+    public function render(Cv $cv)
+    {
+        $this->own($cv);
+        $cv->load(['experiences', 'educations', 'skills', 'user']);
+        return view($this->tplView($cv->template_slug), ['cv' => $cv, 'layout' => 'layouts.render']);
+    }
+
+    public function thumb(Cv $cv)
+    {
+        $this->own($cv);
+        $cv->load(['experiences', 'educations', 'skills', 'user']);
+
+        return view($this->tplView($cv->template_slug), [
+            'cv' => $cv,
+            'layout' => 'layouts.thumb',
+        ]);
+    }
+
+    public function publicByUuid($token)
+    {
+        $cv = Cv::where('public_uuid', $token)->where('status', 'published')->firstOrFail();
+        $cv->load(['experiences', 'educations', 'skills', 'user']);
+        return view($this->tplView($cv->template_slug), ['cv' => $cv, 'layout' => 'layouts.render']);
+    }
+
+    public function togglePublish(Request $request, Cv $cv)
+    {
+        $this->own($cv);
+
+        if ($cv->status === 'published') {
+            $cv->update(['status' => 'draft']);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => $cv->status,
+                    'public_uuid' => $cv->public_uuid,
+                    'public_url' => $cv->public_uuid
+                        ? route('cvs.public', ['token' => $cv->public_uuid])
+                        : null,
+                    'message' => 'CV ditarik sebagai draft.',
+                ]);
+            }
+
+            return back()->with('success', 'CV ditarik sebagai draft.');
+        }
+
+        $errors = $cv->publishingErrors();
+        if (!empty($errors)) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Data CV belum lengkap untuk dipublikasikan.',
+                    'errors' => $errors,
+                ], 422);
+            }
+
+            return back()->withErrors($errors);
+        }
+
+        if (empty($cv->public_uuid)) $cv->public_uuid = Str::uuid()->toString();
+        $cv->status = 'published';
+        $cv->save();
+
+        $publicUrl = route('cvs.public', ['token' => $cv->public_uuid]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => $cv->status,
+                'public_uuid' => $cv->public_uuid,
+                'public_url' => $publicUrl,
+                'message' => 'CV berhasil dipublikasikan.',
+            ]);
+        }
+
+        return back()->with('success', 'CV berhasil dipublikasikan.');
+    }
+
+    private function tplView(?string $slug): string
+    {
+        $slug = trim((string) $slug);
+
+        if ($slug !== '') {
+            $view = "cv.templates.$slug";
+            if (view()->exists($view)) {
+                return $view;
+            }
+
+            $legacyView = "templates.$slug";
+            if (view()->exists($legacyView)) {
+                return $legacyView;
+            }
         }
 
         if (view()->exists('cv.templates.default')) {
-            return view('cv.templates.default', compact('cv'));
+            return 'cv.templates.default';
         }
 
-        abort(500, 'No template view available.');
+        return 'templates.default';
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Cv $cv): View
+    private function own(Cv $cv): void
     {
-        abort_unless($cv->user_id === Auth::id(), 403);
-
-        $templates = Template::query()->where('is_active', true)->orderBy('name')->get();
-
-        return view('cvs.edit', compact('cv', 'templates'));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateCvRequest $request, Cv $cv): RedirectResponse
-    {
-        abort_unless($cv->user_id === Auth::id(), 403);
-
-        $cv->update($request->validated());
-
-        return redirect()->route('cvs.show', $cv);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Cv $cv): RedirectResponse
-    {
-        abort_unless($cv->user_id === Auth::id(), 403);
-
-        $cv->delete();
-
-        return redirect()->route('cvs.index');
+        if ($cv->user_id !== auth()->id()) abort(403);
     }
 }

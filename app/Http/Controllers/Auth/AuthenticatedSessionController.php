@@ -13,7 +13,9 @@ class AuthenticatedSessionController extends Controller
 {
     public function create(): View
     {
-        return view('auth.login');
+        return view('auth.auth', [
+            'activePanel' => 'login',
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
